@@ -1,5 +1,6 @@
 {
   "Black America": [
+    "civil rights",
     "African American",
     "Black Tea Patriots",
     "BlackNews.com",
@@ -31,14 +32,24 @@
     "Racial Segregation",
     "Racism",
     "Black Girls",
-    "Black is Beautiful"
+    "Black is Beautiful",
+    "Black (Color)",
+    "HuffPost",
+    "African-American",
+    "Martin Luther King",
+    "Afrocentrism",
+    "Nigeria",
+    "Anglicanism",
+    "Protestantism"
   ],
   "Election": [
     "President of the United States",
     "presidential election",
     "Elections in the United States",
     "News broadcasting",
-    "breaking news"
+    "breaking news",
+    "Election",
+    "Government"
   ],
   "Entertainment": [
     "CollegeHumor",
@@ -57,7 +68,8 @@
     "Humour",
     "CollegeHumor",
     "Funny Pictures",
-    "Funny"
+    "Funny",
+    "Meme"
   ],
   "Immigration": [
     "Immigration",
@@ -75,7 +87,9 @@
     "Innocence Project",
     "Prison reform",
     "Prisoner",
-    "Children Of Inmates or Prison Wives"
+    "Children Of Inmates or Prison Wives",
+    "Corrections",
+    "Correctional"
   ],
   "Islam": [
     "Islam",
@@ -121,18 +135,13 @@
   "Left Wing": [
     "Bernie Sanders",
     "Social justice",
-    "Anti-racism",
-    "Anti-discrimination",
     "human rights",
-    "civil rights",
-    "civil and political rights",
     "social movement",
     "bernie sanders",
     "social democracy",
     "Liberal Democrats",
     "Liberalism",
     "LGBT community",
-    "civil and political rights",
     "human rights",
     "Anarchism",
     "Nonviolence",
@@ -145,7 +154,6 @@
     "Anti-war movement",
     "Feminism",
     "PeaceOnEarth",
-    "St. Louis",
     "Social equality",
     "Liberal Democrats",
     "Liberalism",
@@ -160,10 +168,14 @@
     "Human rights",
     "Humanitarian aid",
     "The Raw Story",
-    "Mother Jones",
     "Multicultural Affinity",
     "Fascism",
-    "Holocaust"
+    "Holocaust",
+    "Fitness",
+    "LBGT",
+    "Lesbian",
+    "Homosexuality",
+    "Libertarian"
   ],
   "Latin": [
     "Mexico",
@@ -172,7 +184,8 @@
     "Hispanidad",
     "Lowrider",
     "La Raza",
-    "Latino"
+    "Latino",
+    "HispanicTV"
   ],
   "Music": [
     "Music",
@@ -208,7 +221,9 @@
     "Black Panther Party",
     "Black Power"
   ],
-  "Right Wing": [
+  "Pro-Police": [
+  	"Police or Safety",
+  	"Police officer or Safety",
     "Law Enforcement",
     "Blue Line",
     "Officer Down Memorial Page",
@@ -217,13 +232,15 @@
     "Support Law Enforcement",
     "Police Wives Unite",
     "Fallen Police Officers",
-    "Heroes Behind The Badge",
+    "Heroes Behind The Badge"
+  ],
+  "Right Wing": [
     "Cato Institute",
     "Reason (magazine)",
     "Ron Paul",
     "Independence",
     "Patriotism",
-    "Confederate States of America",
+    "Confederate",
     "Patriot Post",
     "American Patriots",
     "Thank A Soldier",
@@ -258,7 +275,8 @@
     "breitbart",
     "Laura Ingraham",
     "Bill O'Reilly",
-    "Sean Hannity"
+    "Sean Hannity",
+    "Army"
   ],
   "Second Amendment": [
     "2nd Amendment",
@@ -277,7 +295,8 @@
     "AR-15",
     "Guns.com",
     "Concealed Carry",
-    "Firearm"
+    "Firearm",
+    "Second Amendment"
   ],
   "Self Defense": [
     "Mixed martial arts",
@@ -290,9 +309,5 @@
     "Right of self-defense",
     "Self Protection",
     "The Self Defense Company"
-  ],
-  "Mixed": [
-    "Antelope Valley College",
-    "Sports"
   ]
 }
