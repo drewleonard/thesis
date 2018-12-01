@@ -14,12 +14,12 @@ plan(multiprocess)
 df <- read.csv('csv/FacebookAds.csv')
 
 # Subset df
-df <- df %>% 
+df_small <- df %>% 
   select('AdID', 'Interests') %>% 
   filter(!is.na(Interests) & grepl("^\\s*$", Interests) == FALSE)
 
 # Preprocess texts
-processed <- textProcessor(documents = df$Interests, metadata = df)
+processed <- textProcessor(documents = df_small$Interests, metadata = df_small)
 out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
 
 # searchK_results <- searchK(out$documents, 
@@ -33,3 +33,29 @@ searchK_results <- readRDS("~/Documents/thesis/data/rds/interests_searchk_10_30_
 pdf("~/Documents/thesis/data/figures/appendix/interests_searchk_10_30_5.pdf")
 plot(searchK_results)
 dev.off()
+
+stm_20 <- stm(out$documents, 
+              out$vocab, 
+              K = 20,
+              data = out$meta,
+              init.type = "Spectral")
+plot(stm_20)
+
+# Get and cast theta object from STM
+theta <- stm_20$theta
+thetadf <- as.data.frame(theta)
+
+# Attach topic names to thetadf
+topicNames <- c('T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16', 'T17', 'T18', 'T19', 'T20')
+names(thetadf) <- topicNames
+
+# Attach AdID field to topics
+AdID <- out$meta[,"AdID"]
+topics <- as.data.frame(cbind(thetadf,AdID))
+
+# Get primary topic for each ad
+topics$"primary_topic" <- colnames(topics[,c(1:ncol(stm_20$theta))])[max.col(topics[,c(1:ncol(stm_20$theta))],ties.method="first")]
+
+# Drop topic loadings
+topics <- topics[,c('AdID','primary_topic')]
+
