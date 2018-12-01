@@ -34,15 +34,19 @@ pdf("~/Documents/thesis/data/figures/appendix/interests_searchk_10_30_5.pdf")
 plot(searchK_results)
 dev.off()
 
-stm_20 <- stm(out$documents, 
+stmobj <- stm(out$documents, 
               out$vocab, 
               K = 20,
               data = out$meta,
               init.type = "Spectral")
-plot(stm_20)
+saveRDS(stmobj, '~/Documents/thesis/data/rds/interests_stm_20.RDS')
+
+pdf("~/Documents/thesis/data/figures/appendix/interests_stm_20.pdf")
+plot(stmobj,n=10)
+dev.off()
 
 # Get and cast theta object from STM
-theta <- stm_20$theta
+theta <- stmobj$theta
 thetadf <- as.data.frame(theta)
 
 # Attach topic names to thetadf
@@ -54,8 +58,11 @@ AdID <- out$meta[,"AdID"]
 topics <- as.data.frame(cbind(thetadf,AdID))
 
 # Get primary topic for each ad
-topics$"primary_topic" <- colnames(topics[,c(1:ncol(stm_20$theta))])[max.col(topics[,c(1:ncol(stm_20$theta))],ties.method="first")]
+topics$"primary_topic" <- colnames(topics[,c(1:ncol(stmobj$theta))])[max.col(topics[,c(1:ncol(stmobj$theta))],ties.method="first")]
 
 # Drop topic loadings
 topics <- topics[,c('AdID','primary_topic')]
+
+# Create df with full ad data + topic loadings
+full <- left_join(df, topics,  by=c("AdID" = "AdID"))
 
