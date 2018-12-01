@@ -1,0 +1,74 @@
+Topic set (alphabetical)
+
+Bearing Arms
+Black Empowerment
+Communal Support
+Election
+Incarceration
+Islam in America
+Minorities
+Mixed
+Music Streaming
+National Security
+Patriotism
+Police Brutality
+Race Tensions
+Social Justice
+
+
+Formatted topics:
+
+"Race Tensions","Black Empowerment","Black Empowerment","Black Empowerment","Incarceration","Communal Support","Race Tensions","Race Tensions","Mixed","Islam in America","Race Tensions","Black Empowerment","Black Empowerment","Mixed","Mixed","Police Brutality","Police Brutality","Race Tensions","Police Brutality","Patriotism","Bearing Arms","Social Justice","Mixed","Mixed","Music Streaming","Patriotism","Black Empowerment","Black Empowerment","Race Tensions","Mixed","Social Justice","Black Empowerment","Black Empowerment","National Security","Police Brutality","Race Tensions","Election","Patriotism","Black Empowerment","Social Justice","Minorities","Race Tensions","Police Brutality","Mixed","Race Tensions","Black Empowerment","Black Empowerment","Minorities","Black Empowerment"
+
+
+Annotated topics:
+
+T1:  Race Tensions
+T2:  Black Empowerment
+T3:  Black Empowerment
+T4:  Black Empowerment
+T5:  Incarceration
+T6:  Communal Support (black business, police)
+T7:  Race Tensions (heritage)
+T8:  Race Tensions (immigration)
+T9:  Mixed
+T10: Islam in America
+T11: Race Tensions
+T12: Black Empowerment
+T13: Black Empowerment
+T14: Mixed
+T15: Mixed
+T16: Police Brutality
+T17: Police Brutality
+T18: Race Tensions
+T19: Police Brutality 
+T20: Patriotism (texas)
+T21: Bearing Arms 
+T22: Social Justice (lgbt, civil rights)
+T23: Mixed
+T24: Mixed
+T25: Music Streaming
+T26: Patriotism (christianity, clinton, veterans, cuns)
+T27: Black Empowerment
+T28: Black Empowerment (some mexican/native too)
+T29: Race Tensions
+T30: Mixed
+T31: Social Justice
+T32: Black Empowerment
+T33: Black Empowerment
+T34: National Security (borders, terrorism)
+T35: Police Brutality
+T36: Race Tensions
+T37: Election
+T38: Patriotism
+T39: Black Empowerment
+T40: Social Justice
+T41: Minorities
+T42: Race Tensions
+T43: Police Brutality
+T44: Patriotism (old values/new ideas, immigration)
+T45: Race Tensions
+T46: Black Empowerment (blm)
+T47: Black Empowerment
+T48: Minorities
+T49: Black Empowerment
