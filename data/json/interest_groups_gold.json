@@ -1,0 +1,141 @@
+{
+  "Left Wing": [
+    "humanitarianism",
+    "i have a dream",
+    "anti-racism",
+    "social justice",
+    "wellness",
+    "liberalism",
+    "malcolm x",
+    "human rights",
+    "democratic",
+    "mother jones",
+    "bernie",
+    "libertarian"
+  ],
+  "Right Wing": [
+    "veterans",
+    "secession",
+    "patriotism",
+    "republican",
+    "tea party",
+    "southern",
+    "donald trump",
+    "vietnam",
+    "manufacturing",
+    "god",
+    "ron paul",
+    "breitbart",
+    "texas",
+    "fox news",
+    "jesus",
+    "confederate",
+    "cato institute",
+    "evangelicalism",
+    "right-wing",
+    "nationalism"
+  ],
+  "Self Defense": [
+    "self-defense",
+    "self defense"
+  ],
+  "Immigration": [
+    "stop illegal immigration",
+    "deportation",
+    "illegal immigration",
+    "immigration"
+  ],
+  "Second Amendment": [
+    "2nd amendment",
+    "gun rights",
+    "bear arms",
+    "second amendment"
+  ],
+  "Black America": [
+    "BlackNews.com",
+    "black power",
+    "cop block",
+    "police brutality",
+    "african american",
+    "african-american",
+    "black (color)",
+    "pan-africanism",
+    "martin luther king",
+    "black",
+    "african",
+    "trayvon",
+    "racial",
+    "anti-racism",
+    "martin luther king",
+    "racism in the united states"
+  ],
+  "Islam": [
+    "islam",
+    "quran",
+    "muslims",
+    "muslim"
+  ],
+  "Pro-Police": [
+    "law enforcement",
+    "the badge",
+    "blue line",
+    "police or safety",
+    "police officer or safety"
+  ],
+  "Latin": [
+    "hispanic",
+    "mexican",
+    "latin",
+    "chicano",
+    "la raza"
+  ],
+  "Native American": [
+    "native american",
+    "american indian"
+  ],
+  "Music": [
+    "music",
+    "soundcloud",
+    "apple music",
+    "itunes",
+    "spotify",
+    "software"
+  ],
+  "Entertainment": [
+    "buzzfeed",
+    "9gag",
+    "entertainment",
+    "imgur",
+    "humour",
+    "funny",
+    "reddit",
+    "games",
+    "meme"
+  ],
+  "LGBT": [
+    "lgbt",
+    "gay",
+    "transgender",
+    "trans",
+    "homosexuality"
+  ],
+  "Government": [
+    "syria",
+    "army",
+    "hillary",
+    "government",
+    "obama",
+    "senate",
+    "tax",
+    "political party"
+  ],
+  "Incarceration": [
+    "prison",
+    "incarceration",
+    "correctional",
+    "inmates"
+  ],
+  "unavailable": [
+    "unavailable"
+  ]
+}
