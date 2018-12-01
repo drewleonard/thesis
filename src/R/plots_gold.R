@@ -344,8 +344,8 @@ topicNamesDf <- data.frame(topicnames = topicNames,
                            TopicProportions = colMeans(stm$theta))
 
 ageAllUnordered <-plot(prepAgeBin,
-                              covariate = "BinAge", 
-                              topics = c(1:49),
+                       covariate = "BinAge",
+                       topics = c(1:49),
                               model = stm, 
                               method = "difference",
                               cov.value1 = "high", 
