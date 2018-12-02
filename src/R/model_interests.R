@@ -65,4 +65,3 @@ topics <- topics[,c('AdID','primary_topic')]
 
 # Create df with full ad data + topic loadings
 full <- left_join(df, topics,  by=c("AdID" = "AdID"))
-
