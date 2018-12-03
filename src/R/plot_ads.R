@@ -15,8 +15,14 @@ library(reshape2)
 library(lattice) 
 library(latticeExtra)
 library(ggrepel)
-library(qdapTools)
-library(Matrix)
+# library(Matrix)
+# library(igraph)
+# library(GGally)
+# library(network)
+# library(sna)
+library(qgraph)
+library(tidyr)
+
 
 # Read data
 fb <- read.csv('csv/fb_gold.csv')
@@ -431,27 +437,32 @@ dev.off()
 
 # PLOT _ 
 # Plot group network
+# THESE WERE COMPUTED WITH JUPYTER NOTEBOOK
+edges <- read.csv("csv/group_to_group.csv")
+nodes <- read.csv("csv/group_node.csv")
 
-group_df <- full %>% 
-  select(c('AccountGroup','Interests')) %>% 
-  filter(AccountGroup != 'Unavailable') %>% 
-  filter(Interests != 'unavailable')
-
-trx.fac <- factor(group_df[,1])
-itm.fac <- factor(group_df[,2])
-
-s <- sparseMatrix(
-  as.numeric(trx.fac), 
-  as.numeric(itm.fac),
-  dimnames = list(
-    as.character(levels(trx.fac)), 
-    as.character(levels(itm.fac))),
-  x = 1)
-
-# calculating co-occurrences
-v2 <- t(s) %*% s
+nums <- c('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52')
 
 
+edges_spread <- edges %>% 
+  spread(group1, weight)
+edges_spread[is.na(edges_spread)] <- 0
+
+cormatrix <- cor_auto(edges_spread)
+
+graph1 <- qgraph(cormatrix, graph="glasso", layout="spring", sampleSize = nrow(edges_spread),
+               vsize=7, cut=0, maximum=.45, border.width=1.5,
+               labels = nums,
+               vsize = 2,
+               node.width = .51,
+               node.heigt = .51,
+               filetype='pdf',
+               filename="~/Documents/coolplot3",
+               width=15,
+               height=15,
+               legend=TRUE,
+               legend.mode="names",
+               nodeNames = colnames(cormatrix))
 
 # PLOT _
 # Different words associated with topic 
