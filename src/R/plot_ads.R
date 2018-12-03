@@ -394,7 +394,7 @@ interestTopicDf <- full %>%
   select(c('Interests', 'primary_topic')) %>% 
   filter(Interests != "mixed" & Interests != 'unavailable' & primary_topic != 'Mixed')
 
-interestTopicMatrix <- as.matrix(table(interestTopicDf))
+interestTopicMatrix <- t(as.matrix(table(droplevels(interestTopicDf))))
 
 d <- ifelse(log2(interestTopicMatrix)<0,0,log10(interestTopicMatrix))
 
@@ -403,28 +403,31 @@ row.ord <- order.dendrogram(dd.row)
 dd.col <- as.dendrogram(hclust(dist(t(d))))
 col.ord <- order.dendrogram(dd.col)
 
-myTheme <- custom.theme(region=plasma(10))
 lattice.options(axis.padding=list(factor=0.5))
+
+pdf('~/Documents/thesis/data/figures/interests_topics_heatmap.pdf')
 levelplot(d[row.ord, col.ord],
-          aspect = "fill", xlab='', ylab='',
+          aspect = "fill", 
+          xlab='Discussed Topics',
+          ylab='Targeted Interests',
+          pretty = TRUE,
+          drop.unused.levels = TRUE,
           scales = list(x = list(rot = 45), tck=c(0,0)),
           colorkey = list(space = "right"),
-          par.settings=myTheme,
-          border='black', border.lwd=.6,
-          xaxt="n",yaxt="n",
-          margin=TRUE,
-          legend =
-            list(left =
-                   list(fun = dendrogramGrob,
-                        args =
+          par.settings=custom.theme(region=plasma(10)),
+          border='black', 
+          border.lwd=.6,
+          xaxt="n",
+          yaxt="n",
+          legend = list(left = list(fun = dendrogramGrob, args =
                           list(x = dd.col, ord = col.ord,
                                side = "right",
                                size = 0)),
-                 top =
-                   list(fun = dendrogramGrob,
-                        args =
+                 top = list(fun = dendrogramGrob, args =
                           list(x = dd.row,
                                side = "top", size=0))))
+
+dev.off()
 
 # PLOT _
 # Different words associated with topic 
