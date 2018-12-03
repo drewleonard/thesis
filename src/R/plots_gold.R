@@ -9,6 +9,7 @@ library(ggridges)
 library(formatR)
 library(cowplot)
 library(ggrepel)
+library(gplots)
 
 # Load and process data file from search_k_gold.R
 fb <- read.csv("csv/post_fb_meta_cleaned.CSV")
