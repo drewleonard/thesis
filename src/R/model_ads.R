@@ -15,13 +15,13 @@ df <- read.csv('csv/fb_gold.csv')
 processed <- textProcessor(documents = df$AdText, metadata = df)
 out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
 
-# stmobj <- stm(out$documents, 
-#               out$vocab, 
+# stmobj <- stm(out$documents,
+#               out$vocab,
 #               K = 49,
 #               prevalence =~ Interests + s(AgeAverage),
 #               data = out$meta,
 #               init.type = "Spectral")
-# saveRDS(stmobj, "~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
+#saveRDS(stmobj, "~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 stmobj <- readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
 theta <- stmobj$theta

@@ -429,6 +429,13 @@ levelplot(d[row.ord, col.ord],
 
 dev.off()
 
+# PLOT _ 
+# Plot different impression by ad
+full %>% 
+  ggplot(aes(x = Impressions)) +
+  geom_histogram(bins=30) +
+  coord_flip()
+
 # PLOT _
 # Different words associated with topic 
 # stmContent <- stm(out$documents, out$vocab, K = 49,
