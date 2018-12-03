@@ -8,15 +8,15 @@ library(forestplot)
 library(ggridges)
 library(formatR)
 library(cowplot)
-library(ComplexHeatmap)
-library(circlize)
 library(RColorBrewer)
 library(viridis)
 library(dendsort)
-library(gplots)
 library(reshape2)
 library(lattice) 
 library(latticeExtra)
+library(ggrepel)
+library(qdapTools)
+library(Matrix)
 
 # Read data
 fb <- read.csv('csv/fb_gold.csv')
@@ -430,11 +430,28 @@ levelplot(d[row.ord, col.ord],
 dev.off()
 
 # PLOT _ 
-# Plot different impression by ad
-full %>% 
-  ggplot(aes(x = Impressions)) +
-  geom_histogram(bins=30) +
-  coord_flip()
+# Plot group network
+
+group_df <- full %>% 
+  select(c('AccountGroup','Interests')) %>% 
+  filter(AccountGroup != 'Unavailable') %>% 
+  filter(Interests != 'unavailable')
+
+trx.fac <- factor(group_df[,1])
+itm.fac <- factor(group_df[,2])
+
+s <- sparseMatrix(
+  as.numeric(trx.fac), 
+  as.numeric(itm.fac),
+  dimnames = list(
+    as.character(levels(trx.fac)), 
+    as.character(levels(itm.fac))),
+  x = 1)
+
+# calculating co-occurrences
+v2 <- t(s) %*% s
+
+
 
 # PLOT _
 # Different words associated with topic 
