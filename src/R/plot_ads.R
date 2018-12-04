@@ -153,14 +153,15 @@ dev.off()
 
 # PLOT _
 # Plot topics over time
-event_date <- c(as.Date("2016-11-08"), as.Date("2016-03-16"), as.Date("2016-09-20"))
-event_pos <- c(15.65, 15.65, 15.65)
-event_label <- c("Election", "WikiLeaks Dump", "Keith Scott Killed")
+event_date <- c(as.Date("2016-11-08"),as.Date("2016-03-16"), as.Date("2016-09-20"),as.Date('2016-06-06'))
+event_pos <- c(15.65, 15.65, 15.65,15.65)
+event_label <- c("Election", "WikiLeaks Dump", "Keith Scott Killed","Hillary Nominee")
 event_annotes <- data.frame(event_date, event_pos, event_label)
 
 pdf("~/Documents/thesis/data/figures/topics_date.pdf")
 full %>%
   drop_na(primary_topic) %>%
+  mutate()
   ggplot(aes(x = as.Date(CreationDateFormatted, "%Y-%m-%d"), y = as.factor(primary_topic))) +
   geom_density_ridges() +
   scale_y_discrete(expand = c(0.01, 0)) +
@@ -320,30 +321,6 @@ plot(prepAdSpendBin, "AdSpendBin",
 dev.off()
 
 # PLOT _
-# Plot ad spend quant effects
-
-# prepAdSpendQuant <- estimateEffect(formula = 1:49 ~ s(AdSpend),
-#                                    stmobj = stm,
-#                                    metadata = out$meta,
-#                                    uncertainty = "Global")
-
-# plot(prepAdSpendQuant, "AdSpend",
-#      method = "continuous",
-#      topics = c(21,37),
-#      model = stm,
-#      printlegend = F,
-#      linecol = c("blue", "red"),
-#      xlab = "Ad Spend (RUB)",
-#      labeltype = "custom")
-#
-# legend(x = 15,
-#        y = 0.6,
-#        c("Bearing Arms", 'Election'),
-#        lwd = 2,
-#        cex = 0.5,
-#        col = c("blue", "red"))
-
-# PLOT _
 # Plot age bin effects
 prepAgeBin <- estimateEffect(
   formula = 1:49 ~ AgeAverageBin,
@@ -374,7 +351,6 @@ dev.off()
 
 # PLOT _
 # Plot age effects (all)
-
 topicNamesDf <- data.frame(
   topicnames = topicNames,
   TopicNumber = 1:49,
@@ -423,19 +399,19 @@ prepAgeQuant <- estimateEffect(
 pdf("~/Documents/thesis/data/figures/effects_quant_age.pdf")
 plot(prepAgeQuant, "AgeAverage",
   method = "continuous",
-  topics = c(8, 37),
+  topics = c(17,8),
   model = stm,
   printlegend = F,
   linecol = c("blue", "red"),
   xlab = "Targeted Age (Average)",
   labeltype = "custom",
-  custom.labels = c("Race Tensions", "Music Streaming")
+  custom.labels = c("Police Brutality", "Race Tensions")
 )
 
 legend(
-  x = 15,
-  y = 0.08,
-  c("Race Tensions", "Music Streaming"),
+  x = 41,
+  y = -0.04,
+  c("Police Brutality", "Race Tensions"),
   lwd = 2,
   cex = 1,
   col = c("blue", "red")
@@ -446,7 +422,6 @@ dev.off()
 # PLOT _
 # Plot topics relative to interests
 # (Heatmap)
-
 interestTopicDf <- full %>%
   select(c("Interests", "primary_topic")) %>%
   filter(Interests != "mixed" & Interests != "unavailable" & primary_topic != "Mixed")
@@ -538,6 +513,65 @@ coolplot <- qgraph(cormatrix,
   # XKCD = TRUE, # the most important argument
   theme = "Borkulo"
 )
+
+# PLOT _
+# Basic summary graphs
+pdf("~/Documents/thesis/data/figures/impressions.pdf")
+full %>% 
+  ggplot() + 
+  geom_histogram(aes(Impressions,y = ..count../sum(..count..)), 
+                 binwidth = 1000, 
+                 colour='white', 
+                 size=1) +
+  xlim(0,20000) +
+  ylim(0,.15) +
+  ylab('Proportion') +
+  xlab('Ad Impressions')
+dev.off()
+
+pdf("~/Documents/thesis/data/figures/clicks.pdf")
+full %>% 
+  ggplot() +
+  geom_histogram(aes(Clicks,y = ..count../sum(..count..)), 
+                 binwidth = 1000, 
+                 colour='white', 
+                 size=1) +
+  xlim(0,13000) +
+  ylim(0,.15) +
+  ylab('Proportion') +
+  xlab('Ad Clicks')
+dev.off()
+
+pdf("~/Documents/thesis/data/figures/spend.pdf")
+full %>% 
+  ggplot() +
+  geom_histogram(aes(AdSpend,y = ..count../sum(..count..)), 
+                 binwidth = 1000, 
+                 colour='white', 
+                 size=1) +
+  xlim(0,25000) +
+  ylim(0,.1) +
+  ylab('Proportion') +
+  xlab('Ad Spend (RUB)')
+dev.off()
+
+# PLOT _
+# # Effects of time on topics
+# creationDatePrep <- estimateEffect(formula = c(1:49) ~ Interests + s(CreationDateInteger), 
+#                stmobj = stm,
+#                metadata = out$meta, 
+#                uncertainty = "Global")
+# 
+# plot(creationDatePrep, "CreationDateInteger", method = "continuous", topics = (1:20),
+#      model = stm, printlegend = FALSE, xlab = "Time")
+# monthseq <- seq(from = as.Date("2014-06-09"),
+#                 to = as.Date("2018-08-13"), by = "month")
+# monthnames <- months(monthseq)
+# axis(1, at = as.numeric(monthseq) - min(as.numeric(monthseq)), labels = monthnames)
+
+
+
+
 
 # PLOT _
 # Different words associated with topic
