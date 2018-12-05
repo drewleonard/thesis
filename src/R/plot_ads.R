@@ -161,9 +161,9 @@ event_annotes <- data.frame(event_date, event_pos, event_label)
 pdf("~/Documents/thesis/data/figures/topics_date.pdf")
 full %>%
   drop_na(primary_topic) %>%
-  mutate()
+  mutate() %>% 
   ggplot(aes(x = as.Date(CreationDateFormatted, "%Y-%m-%d"), y = as.factor(primary_topic))) +
-  geom_density_ridges() +
+  geom_density_ridges2(aes(alpha = 0.5)) +
   scale_y_discrete(expand = c(0.01, 0)) +
   labs(title = "", x = "", y = "") +
   geom_segment(
@@ -516,60 +516,149 @@ coolplot <- qgraph(cormatrix,
 
 # PLOT _
 # Basic summary graphs
+metric_df <- full %>% 
+  select(Impressions,Clicks,AdSpend) %>% 
+  filter(Impressions < quantile(Impressions, 0.98) & Impressions > 0) %>% 
+  filter(Clicks < quantile(Clicks, 0.98) & Clicks > 0) %>% 
+  filter(AdSpend < quantile(AdSpend, 0.98) & AdSpend > 0)
+
 pdf("~/Documents/thesis/data/figures/impressions.pdf")
-full %>% 
+impressions_p <- metric_df %>% 
   ggplot() + 
-  geom_histogram(aes(Impressions,y = ..count../sum(..count..)), 
-                 binwidth = 1000, 
+  geom_histogram(aes(Impressions, y = ..count../sum(..count..)), 
+                 binwidth = quantile(full$Impressions, 0.95) * 0.05, 
                  colour='white', 
-                 size=1) +
-  xlim(0,20000) +
-  ylim(0,.15) +
-  ylab('Proportion') +
-  xlab('Ad Impressions')
+                 size=1,
+                 boundary = 0) +
+  xlim(0,quantile(full$Impressions, 0.95)) +
+  ylim(0,.55) +
+  ylab('') +
+  xlab('Impressions')
+
+impressions_p_sub <- full %>% 
+  filter(Impressions < quantile(Impressions, 0.99)) %>% 
+  ggplot() + 
+  geom_density(aes(Impressions,..count../sum(..count..))) +
+  ylab('') +
+  xlab('') 
+
+ggdraw() +
+  draw_plot(impressions_p + theme(legend.justification = "bottom"), 0, 0, 1, 1) +
+  draw_plot(impressions_p_sub + 
+              theme(legend.justification = "top"), 0.5, 0.5, 0.5, 0.5)
+# full %>% 
+#   ggplot() + 
+#   geom_histogram(aes(Impressions,y = ..count../sum(..count..)), 
+#                  binwidth = 1000, 
+#                  colour='white', 
+#                  size=1) +
+#   xlim(0,20000) +
+#   ylim(0,.15) +
+#   ylab('Proportion') +
+#   xlab('Ad Impressions')
 dev.off()
 
 pdf("~/Documents/thesis/data/figures/clicks.pdf")
-full %>% 
-  ggplot() +
-  geom_histogram(aes(Clicks,y = ..count../sum(..count..)), 
-                 binwidth = 1000, 
+clicks_p <- metric_df %>% 
+  ggplot() + 
+  geom_histogram(aes(Clicks, y = ..count../sum(..count..)), 
+                 binwidth = quantile(full$Clicks, 0.95) * 0.05, 
                  colour='white', 
-                 size=1) +
-  xlim(0,13000) +
-  ylim(0,.15) +
-  ylab('Proportion') +
-  xlab('Ad Clicks')
+                 size = 1,
+                 boundary = 0) +
+  xlim(0,quantile(full$Clicks, 0.95)) +
+  ylim(0,.55) +
+  ylab('') +
+  xlab('Clicks')
+
+clicks_p_sub <- full %>% 
+  filter(Clicks < quantile(Clicks, 0.99)) %>% 
+  ggplot() + 
+  geom_density(aes(Clicks,..count../sum(..count..))) +
+  ylab('') +
+  xlab('') 
+
+ggdraw() +
+  draw_plot(clicks_p + theme(legend.justification = "bottom"), 0, 0, 1, 1) +
+  draw_plot(clicks_p_sub + 
+              theme(legend.justification = "top"), 0.5, 0.5, 0.5, 0.5)
+# full %>% 
+#   ggplot() +
+#   geom_histogram(aes(Clicks,y = ..count../sum(..count..)), 
+#                  binwidth = 1000, 
+#                  colour='white', 
+#                  size=1) +
+#   xlim(0,13000) +
+#   ylim(0,.15) +
+#   ylab('Proportion') +
+#   xlab('Ad Clicks')
 dev.off()
 
 pdf("~/Documents/thesis/data/figures/spend.pdf")
-full %>% 
-  ggplot() +
-  geom_histogram(aes(AdSpend,y = ..count../sum(..count..)), 
-                 binwidth = 1000, 
-                 colour='white', 
-                 size=1) +
-  xlim(0,25000) +
-  ylim(0,.1) +
-  ylab('Proportion') +
-  xlab('Ad Spend (RUB)')
+spend_p <- metric_df %>% 
+  ggplot() + 
+  geom_histogram(aes(AdSpend, y = ..count../sum(..count..)), 
+                 binwidth = quantile(full$AdSpend, 0.95) * 0.05,
+                 colour = 'white', 
+                 size = 1,
+                 boundary = 0) +
+  xlim(0, quantile(full$AdSpend, 0.95)) +
+  ylim(0,0.55) +
+  ylab('') +
+  xlab('Spend (RUB)')
+
+spend_p_sub <- full %>% 
+  filter(AdSpend < quantile(AdSpend, 0.99)) %>% 
+  ggplot() + 
+  geom_density(aes(AdSpend,..count../sum(..count..))) +
+  ylab('') +
+  xlab('') 
+
+ggdraw() +
+  draw_plot(spend_p + theme(legend.justification = "bottom"), 0, 0, 1, 1) +
+  draw_plot(spend_p_sub + 
+              theme(legend.justification = "top"), 0.5, 0.5, 0.5, 0.5)
+# full %>% 
+#   ggplot() +
+#   geom_histogram(aes(AdSpend,y = ..count../sum(..count..)), 
+#                  binwidth = 1000, 
+#                  colour='white', 
+#                  size=1) +
+#   xlim(0,25000) +
+#   ylim(0,.15) +
+#   ylab('Proportion') +
+#   xlab('Ad Spend (RUB)')
 dev.off()
 
 # PLOT _
-# # Effects of time on topics
-# creationDatePrep <- estimateEffect(formula = c(1:49) ~ Interests + s(CreationDateInteger), 
-#                stmobj = stm,
-#                metadata = out$meta, 
-#                uncertainty = "Global")
-# 
-# plot(creationDatePrep, "CreationDateInteger", method = "continuous", topics = (1:20),
-#      model = stm, printlegend = FALSE, xlab = "Time")
-# monthseq <- seq(from = as.Date("2014-06-09"),
-#                 to = as.Date("2018-08-13"), by = "month")
-# monthnames <- months(monthseq)
-# axis(1, at = as.numeric(monthseq) - min(as.numeric(monthseq)), labels = monthnames)
+# Model performance
+stm_searchk <- readRDS('old/_rds/stm_model_small_20_70_5.RDS')
+pdf("~/Documents/thesis/data/figures/searchk.pdf")
+plot.searchK(stm_searchk)
+dev.off()
+
+# PLOT _
+# Effects of time on topics
+creationDatePrep <- estimateEffect(formula = c(1:49) ~ s(CreationDateInteger),
+               stmobj = stm,
+               metadata = out$meta,
+               uncertainty = "Global")
+pdf('~/Documents/thesis/data/figures/date_topic27.pdf')
+plot(creationDatePrep, "CreationDateInteger", method = "continuous", topics = (27),
+     model = stm, printlegend = TRUE, 
+     xlab = "Time",
+     xaxt = "n",
+     labeltype = 'custom',
+     custom.labels = c('Black Empowerment (Topic 27)'))
+
+monthseq <- seq(from = as.Date("2014-01-01"),
+                to = as.Date("2019-08-13"), by = "month")
+monthnames <- months(monthseq)
+axis(1, at = as.numeric(monthseq) - min(as.numeric(monthseq)), labels = monthnames)
+dev.off()
 
 
+#####
 
 
 
