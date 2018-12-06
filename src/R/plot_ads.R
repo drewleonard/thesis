@@ -19,6 +19,9 @@ library(latticeExtra)
 library(ggrepel)
 library(qgraph)
 library(styler)
+library(gplots)
+library("EGA")
+library(ComplexHeatmap)
 
 # Read data
 fb <- read.csv("csv/fb_gold.csv")
@@ -485,7 +488,6 @@ edges_spread <- edges %>%
 edges_spread[is.na(edges_spread)] <- 0
 
 cormatrix <- cor_auto(edges_spread)
-BICgraph <- findGraph(cormatrix, nrow(edges_spread))
 
 group_sizes <- full %>% 
   select('AccountGroup') %>% 
@@ -522,8 +524,25 @@ qgraph(cormatrix,
        theme = "Borkulo"
 )
 
-library("EGA")
-ega<-EGA(cormatrix,n=61, plot.EGA = TRUE)
+# Get 7 groups from correlation matrix
+ega < -EGA(cormatrix, n=61, plot.EGA=TRUE)
+
+# Matrix heatmap
+cormatrix_original_labels <- colnames(cormatrix)
+cormatrix_new_labels <- sprintf("%s",seq(1:60))
+colnames(cormatrix) <- cormatrix_new_labels
+rownames(cormatrix) <- cormatrix_new_labels
+clustering = cluster::pam(cormatrix, k = 2)
+coolmap <- Heatmap(cormatrix, 
+        km = 2, 
+        row_dend_width = unit(5, "cm"), 
+        column_dend_height = unit(5, "cm"),
+        name = " ",
+        heatmap_legend_param = list(legend_width = unit(5, "in"), 
+                                    legend_direction="horizontal"))
+pdf('~/Documents/coolmap.pdf', height=12, width=12)
+draw(coolmap, heatmap_legend_side = "bottom")
+dev.off()
 
 # PLOT _
 # Basic summary graphs
