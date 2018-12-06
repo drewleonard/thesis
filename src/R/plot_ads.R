@@ -4,6 +4,8 @@ setwd("~/Documents/thesis/data/")
 # Load packages
 library(stm)
 library(tidyverse)
+library(scales)
+library(lubridate)
 library(forestplot)
 library(ggridges)
 library(formatR)
@@ -428,7 +430,7 @@ interestTopicDf <- full %>%
 
 interestTopicMatrix <- t(as.matrix(table(droplevels(interestTopicDf))))
 
-d <- ifelse(log2(interestTopicMatrix) < 0, 0, log10(interestTopicMatrix))
+d <- ifelse(log(interestTopicMatrix) < 0, 0, log(interestTopicMatrix))
 
 dd.row <- as.dendrogram(hclust(dist(d)))
 row.ord <- order.dendrogram(dd.row)
@@ -478,41 +480,50 @@ dev.off()
 edges <- read.csv("csv/group_to_group.csv")
 nodes <- read.csv("csv/group_node.csv")
 
-nums <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52")
+edges_spread <- edges %>%
+  spread(group2, weight)
+edges_spread[is.na(edges_spread)] <- 0
+
+cormatrix <- cor_auto(edges_spread)
+BICgraph <- findGraph(cormatrix, nrow(edges_spread))
 
 group_sizes <- full %>% 
   select('AccountGroup') %>% 
   group_by(AccountGroup) %>% 
   summarise(rank = n()) %>% 
   ungroup() %>% 
-  filter(AccountGroup %in% colnames(cormatrix)) %>% 
+  filter(AccountGroup %in% colnames(cormatrix)) %>%
   rowwise() %>% 
-  mutate(rank = max((log2(rank)/1.5),1) + 2)
-  
-edges_spread <- edges %>%
-  spread(group1, weight)
-edges_spread[is.na(edges_spread)] <- 0
+  mutate(rank = max((log2(rank)/2) + 1, 2))
 
-cormatrix <- cor_auto(edges_spread)
-coolplot <- qgraph(cormatrix,
-  graph = "glasso", 
-  layout = "spring", 
-  sampleSize = nrow(edges_spread),
-  cut = 0, 
-  maximum = .45, 
-  border.width = 1.5, 
-  labels = nums, 
-  filetype = "pdf",
-  filename = "~/Documents/coolplot",
-  width = 15,
-  height = 15,
-  legend = TRUE,
-  legend.mode = "names",
-  nodeNames = colnames(cormatrix),
-  vsize = group_sizes$rank,
-  # XKCD = TRUE, # the most important argument
-  theme = "Borkulo"
+nums <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
+          "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", 
+          "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", 
+          "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", 
+          "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", 
+          "51", "52", "53", "54", "55", "56", "57", "58", "59", "60")
+
+qgraph(cormatrix,
+       layout="spring",
+       theme='Borkulo', 
+       nodeNames = colnames(cormatrix), 
+       labels=nums,
+       vsize=group_sizes$rank ,
+       filetype = "pdf",
+       filename = "~/Documents/coolplot",
+       cut = .9,
+       minimum = .5,
+       width = 17.5,
+       height = 17.5,
+       legend = TRUE,
+       legend.mode = "names",
+       normalize = TRUE,
+        # XKCD = TRUE, # the most important argument
+       theme = "Borkulo"
 )
+
+library("EGA")
+ega<-EGA(cormatrix,n=61, plot.EGA = TRUE)
 
 # PLOT _
 # Basic summary graphs
@@ -631,6 +642,56 @@ ggdraw() +
 dev.off()
 
 # PLOT _
+# Plot groups relative to topics
+# (Heatmap)
+accountGroupTopicDf <- full %>%
+  select(c("AccountGroup", "primary_topic")) %>%
+  filter(AccountGroup != "unavailable" & primary_topic != "Mixed")
+
+accountGroupTopicMatrix <- t(as.matrix(table(droplevels(accountGroupTopicDf))))
+
+d2 <- ifelse(log10(accountGroupTopicMatrix) < 0, 0, log10(accountGroupTopicMatrix))
+
+dd2.row <- as.dendrogram(hclust(dist(d2)))
+row2.ord <- order.dendrogram(dd2.row)
+dd2.col <- as.dendrogram(hclust(dist(t(d2))))
+col2.ord <- order.dendrogram(dd2.col)
+
+lattice.options(axis.padding = list(factor = 0.5))
+
+levelplot(d2[row2.ord, col2.ord],
+          aspect = "fill",
+          xlab = "Discussed Topics",
+          ylab = "Account Groups",
+          pretty = TRUE,
+          drop.unused.levels = TRUE,
+          scales = list(x = list(rot = 45), tck = c(0, 0)),
+          colorkey = list(space = "right"),
+          par.settings = custom.theme(region = plasma(10)),
+          border = "black",
+          border.lwd = .6,
+          xaxt = "n",
+          yaxt = "n",
+          legend = list(
+            left = list(
+              fun = dendrogramGrob, args =
+                list(
+                  x = dd2.col, ord = col2.ord,
+                  side = "right",
+                  size = 0
+                )
+            ),
+            top = list(
+              fun = dendrogramGrob, args =
+                list(
+                  x = dd2.row,
+                  side = "top", size = 0
+                )
+            )
+          )
+)
+
+# PLOT _
 # Model performance
 stm_searchk <- readRDS('old/_rds/stm_model_small_20_70_5.RDS')
 pdf("~/Documents/thesis/data/figures/searchk.pdf")
@@ -657,29 +718,33 @@ monthnames <- months(monthseq)
 axis(1, at = as.numeric(monthseq) - min(as.numeric(monthseq)), labels = monthnames)
 dev.off()
 
+# PLOT _
+# Time series trends
+time_df <- full
+time_df$Date <- as.Date(time_df$CreationDateFormatted,
+                        "%Y-%m-%d")
+time_df$Month <- as.Date(cut(time_df$Date,
+                             breaks = "week"))
 
-#####
+time_df <- time_df %>% 
+  select(primary_topic, Month) %>% 
+  group_by(Month, primary_topic) %>% 
+  summarise(n = n()) %>% 
+  group_by(primary_topic) %>% 
+  mutate(freq = n / sum(n)) %>% 
+  filter(!is.na(primary_topic))
 
+time_df %>% 
+  filter(primary_topic == 'Election') %>% 
+  ggplot(aes(Month, n)) +
+  geom_point() + 
+  geom_path() +
+  geom_vline(aes(xintercept = as.Date('2016-11-08')), colour = "blue")
 
 
 # PLOT _
-# Different words associated with topic
-# stmContent <- stm(out$documents, out$vocab, K = 49,
-#                   content =~ Interests,
-#                   max.em.its = 75, data = out$meta, init.type = "Spectral")
-# plot(stm, type = "perspectives", topics = 10)
-
-
+# Effects of spend on clicks
+fit <- lm(AdSpend ~ Clicks, data = full)
+plot_summs(fit)
 # PLOT _ Topic quality
 # topicQuality(stm, docs, xlab = "Semantic Coherence", ylab = "Exclusivity", labels = 1:ncol(stm$theta), M = 10)
-
-
-# PLOT _
-# Plot topics by count
-# full %>%
-#   drop_na(primary_topic) %>%
-#   ggplot(aes(x = factor(primary_topic, levels=names(sort(table(primary_topic)))))) +
-#   geom_bar() +
-#   coord_flip() +
-#   scale_y_continuous(expand = c(0,1)) +
-#   labs(title = "Grouped Topic Counts", x = "", y = "")
