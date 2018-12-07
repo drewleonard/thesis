@@ -35,7 +35,23 @@ full <- read.csv("csv/df_interests_spline_age_49.csv")
 stm <- readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
 # Set topic names
-topicNames <- c("Race Tensions", "Black Empowerment", "Black Empowerment", "Black Empowerment", "Incarceration", "Communal Support", "Race Tensions", "Race Tensions", "Mixed", "Islam in America", "Race Tensions", "Black Empowerment", "Black Empowerment", "Mixed", "Mixed", "Police Brutality", "Police Brutality", "Race Tensions", "Police Brutality", "Patriotism", "Bearing Arms", "Social Justice", "Mixed", "Mixed", "Music Streaming", "Patriotism", "Black Empowerment", "Black Empowerment", "Race Tensions", "Mixed", "Social Justice", "Black Empowerment", "Black Empowerment", "National Security", "Police Brutality", "Race Tensions", "Election", "Patriotism", "Black Empowerment", "Social Justice", "Minorities", "Race Tensions", "Police Brutality", "Patriotism", "Race Tensions", "Black Empowerment", "Black Empowerment", "Minorities", "Black Empowerment")
+topicNames <- c("Race Tensions", "Black Empowerment", "Black Empowerment", 
+                "Black Empowerment", "Incarceration", "Communal Support", 
+                "Race Tensions", "Race Tensions", "Mixed", 
+                "Islam in America", "Race Tensions", "Black Empowerment", 
+                "Black Empowerment", "Mixed", "Mixed", 
+                "Police Brutality", "Police Brutality", "Race Tensions", 
+                "Police Brutality", "Patriotism", "Bearing Arms", 
+                "Social Justice", "Mixed", "Mixed", 
+                "Music Streaming", "Patriotism", "Black Empowerment", 
+                "Black Empowerment", "Race Tensions", "Mixed", 
+                "Social Justice", "Black Empowerment", "Black Empowerment", 
+                "National Security", "Police Brutality", "Race Tensions", 
+                "Election", "Patriotism", "Black Empowerment", 
+                "Social Justice", "Minorities", "Race Tensions", 
+                "Police Brutality", "Patriotism", "Race Tensions", 
+                "Black Empowerment", "Black Empowerment", "Minorities", 
+                "Black Empowerment")
 
 # PLOT _
 # Plot grouped topics' clicks, impressions, spend
@@ -544,7 +560,45 @@ pdf('~/Documents/coolmap.pdf', height=12, width=12)
 draw(coolmap, heatmap_legend_side = "bottom")
 dev.off()
 
+# Cluster topic prevalence analysis
+clusterPrep <- estimateEffect(formula = c(1:49) ~ AccountGroupCluster,
+               stmobj = stm,
+               metadata = out$meta,
+               uncertainty = "Global")
 
+clusterPrepPlot <- plot(clusterInterestPrep,
+     covariate = "AccountGroupCluster", 
+     topics = c(1:49),
+     model = stm, 
+     method = "difference",
+     cov.value1 = 2, 
+     cov.value2 = 1,
+     xlab = "Cluster one ... Cluster two",
+     main = "",
+     labeltype = "custom",
+     xlim = c(-.3,.3),
+     custom.labels = topicNames
+)
+clusterPrepPlotCisDf <- data.frame(t(sapply(clusterPrepPlot$cis, function(x) x[1:max(lengths(clusterPrepPlot$cis))])))
+clusterPrepPlotDf <- data.frame(clusterPrepPlot$labels,
+                                clusterPrepPlot$topics,
+                                unlist(clusterPrepPlot$means),
+                                clusterPrepPlotCisDf$X2.5.,
+                                clusterPrepPlotCisDf$X97.5.)
+colnames(clusterPrepPlotDf) <- c('primary_topic', 'topic_n', 'mean', 'lower', 'upper')
+clusterPrepPlotDfGrouped <- clusterPrepPlotDf %>% 
+  group_by(primary_topic) %>% 
+  summarise(avg_ci_point_estimate = mean(mean),
+            avg_ci_lower_bound = mean(lower),
+            avg_ci_upper_bound = mean(upper))
+clusterPrepPlotDfGroupedSmall <- clusterPrepPlotDfGrouped %>% 
+  select(avg_ci_point_estimate,avg_ci_lower_bound,avg_ci_upper_bound)
+table_text <- cbind(seq(1, length(clusterPrepPlotDfGrouped$primary_topic)), 
+                    as.vector(clusterPrepPlotDfGrouped$primary_topic))
+
+forestplot(table_text, 
+           clusterPrepPlotDfGroupedSmall,
+           clip=c(-.1,1))
 
 # PLOT _
 # Basic summary graphs
