@@ -591,14 +591,59 @@ clusterPrepPlotDfGrouped <- clusterPrepPlotDf %>%
   summarise(avg_ci_point_estimate = mean(mean),
             avg_ci_lower_bound = mean(lower),
             avg_ci_upper_bound = mean(upper))
-clusterPrepPlotDfGroupedSmall <- clusterPrepPlotDfGrouped %>% 
-  select(avg_ci_point_estimate,avg_ci_lower_bound,avg_ci_upper_bound)
-table_text <- cbind(seq(1, length(clusterPrepPlotDfGrouped$primary_topic)), 
-                    as.vector(clusterPrepPlotDfGrouped$primary_topic))
 
-forestplot(table_text, 
-           clusterPrepPlotDfGroupedSmall,
+formatInterval <- function(mean,lower,upper) {
+  
+  # Format upper
+  upper = formatC(upper, format = 'f', digits = 2)
+  upper = ifelse(grepl('-',upper),str_c('',upper),str_c(' ',upper))
+  # Format lower
+  lower = formatC(lower, format = 'f', digits = 2)
+  lower = ifelse(grepl('-',lower),str_c(' ',lower),str_c('  ',lower))
+  # Format interval
+  interval = str_c('[', lower, ' , ', upper, ' ]')
+  
+  # Get chars in interval
+  MAX_LENGTH = 20
+  interval = str_pad(interval,MAX_LENGTH,side='left')
+
+  # Format mean
+  mean = formatC(mean, format = 'f', digits = 2)
+  
+  return(str_c(mean, ' ', interval))
+  
+}
+  
+table_text <- cbind(c(NA, seq(1, length(clusterPrepPlotDfGrouped$primary_topic))), 
+                    c("Primary Topic", as.vector(clusterPrepPlotDfGrouped$primary_topic)),
+                    c("95% Confidence Interval",formatInterval(clusterPrepPlotDfGrouped$avg_ci_point_estimate,
+                                                               clusterPrepPlotDfGrouped$avg_ci_lower_bound,
+                                                               clusterPrepPlotDfGrouped$avg_ci_upper_bound)))
+                   
+pdf("~/Documents/thesis/data/figures/cluster_forest_plot.pdf")
+forestplot(table_text,
+           graph.pos = 3,
+           is.summary = c(TRUE, rep(FALSE, length(clusterPrepPlotDfGrouped$primary_topic))),
+           align = c("r", "l", "r"),
+           mean = c(NA,clusterPrepPlotDfGrouped$avg_ci_point_estimate),
+           lower = c(NA,clusterPrepPlotDfGrouped$avg_ci_lower_bound),
+           upper = c(NA,clusterPrepPlotDfGrouped$avg_ci_upper_bound),
+           fn.ci_norm = fpDrawCircleCI,
+           hrzl_lines=list("2" = gpar(lwd=2, col="#000000")),
+           boxsize = .15,
+           xlab = ("\nCluster One ... Cluster Two"),
+           cex  = 0,
+           zero = 0,
+           new_page = FALSE,
+           txt_gp=fpTxtGp(xlab = gpar(cex =.75),
+                          label=gpar(cex=.75),
+                          ticks=gpar(cex=.75)),
+           col=fpColors(box="black", lines="black", zero = "gray50"),
+           cex=0.9, lineheight = "auto", colgap=unit(4,"mm"),
+           lwd.ci=1,
            clip=c(-.1,1))
+dev.off()
+
 
 # PLOT _
 # Basic summary graphs
@@ -765,13 +810,6 @@ levelplot(d2[row2.ord, col2.ord],
             )
           )
 )
-
-# PLOT _
-# Model performance
-stm_searchk <- readRDS('old/_rds/stm_model_small_20_70_5.RDS')
-pdf("~/Documents/thesis/data/figures/searchk.pdf")
-plot.searchK(stm_searchk)
-dev.off()
 
 # PLOT _
 # Effects of time on topics
