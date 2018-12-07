@@ -21,7 +21,7 @@ out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
 #               prevalence =~ Interests + s(AgeAverage),
 #               data = out$meta,
 #               init.type = "Spectral")
-#saveRDS(stmobj, "~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
+# saveRDS(stmobj, "~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 stmobj <- readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
 theta <- stmobj$theta
@@ -47,5 +47,4 @@ topics <- topics[,c('AdID','primary_topic')]
 
 # Create df with full ad data + topic loadings
 full <- left_join(df, topics,  by=c("AdID" = "AdID"))
-
-write_csv(full, "~/Documents/thesis/data/csv/df_interests_spline_age_49.csv")
+#write_csv(full, "~/Documents/thesis/data/csv/df_interests_spline_age_49.csv")
