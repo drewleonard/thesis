@@ -544,6 +544,8 @@ pdf('~/Documents/coolmap.pdf', height=12, width=12)
 draw(coolmap, heatmap_legend_side = "bottom")
 dev.off()
 
+
+
 # PLOT _
 # Basic summary graphs
 metric_df <- full %>% 
