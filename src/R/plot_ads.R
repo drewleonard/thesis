@@ -20,8 +20,8 @@ library(ggrepel)
 library(qgraph)
 library(styler)
 library(gplots)
-library("EGA")
 library(ComplexHeatmap)
+library(dendsort)
 
 # Read data
 fb <- read.csv("csv/fb_gold.csv")
@@ -541,22 +541,30 @@ qgraph(cormatrix,
 )
 
 # Get 7 groups from correlation matrix
-ega < -EGA(cormatrix, n=61, plot.EGA=TRUE)
+#ega <- EGA(cormatrix, n=61, plot.EGA=TRUE)
 
 # Matrix heatmap
 cormatrix_original_labels <- colnames(cormatrix)
 cormatrix_new_labels <- sprintf("%s",seq(1:60))
 colnames(cormatrix) <- cormatrix_new_labels
 rownames(cormatrix) <- cormatrix_new_labels
-clustering = cluster::pam(cormatrix, k = 2)
-coolmap <- Heatmap(cormatrix, 
-        km = 2, 
-        row_dend_width = unit(5, "cm"), 
-        column_dend_height = unit(5, "cm"),
-        name = " ",
-        heatmap_legend_param = list(legend_width = unit(5, "in"), 
-                                    legend_direction="horizontal"))
-pdf('~/Documents/coolmap.pdf', height=12, width=12)
+
+coolmap <- Heatmap(
+  cormatrix,
+  clustering_distance_rows=function(x) as.dist(1-cor(t(x))),
+  clustering_distance_columns=function(x) as.dist(1-cor(t(x))),
+  clustering_method_columns="average",
+  clustering_method_rows="average",
+  row_dend_reorder = TRUE,
+  column_dend_reorder = TRUE,
+  row_dend_width = unit(2, 'in'),
+  column_dend_height = unit(2, 'in'),
+  km = 2,
+  name = " ",
+  heatmap_legend_param = list(legend_width = unit(5, "in"), 
+                              legend_direction="horizontal"))
+
+pdf('~/Documents/coolmap.pdf', height=14, width=14)
 draw(coolmap, heatmap_legend_side = "bottom")
 dev.off()
 
@@ -566,7 +574,7 @@ clusterPrep <- estimateEffect(formula = c(1:49) ~ AccountGroupCluster,
                metadata = out$meta,
                uncertainty = "Global")
 
-clusterPrepPlot <- plot(clusterInterestPrep,
+clusterPrepPlot <- plot(clusterPrep,
      covariate = "AccountGroupCluster", 
      topics = c(1:49),
      model = stm, 
@@ -579,6 +587,7 @@ clusterPrepPlot <- plot(clusterInterestPrep,
      xlim = c(-.3,.3),
      custom.labels = topicNames
 )
+
 clusterPrepPlotCisDf <- data.frame(t(sapply(clusterPrepPlot$cis, function(x) x[1:max(lengths(clusterPrepPlot$cis))])))
 clusterPrepPlotDf <- data.frame(clusterPrepPlot$labels,
                                 clusterPrepPlot$topics,
@@ -593,30 +602,18 @@ clusterPrepPlotDfGrouped <- clusterPrepPlotDf %>%
             avg_ci_upper_bound = mean(upper))
 
 formatInterval <- function(mean,lower,upper) {
-  
-  # Format upper
-  upper = formatC(upper, format = 'f', digits = 2)
-  upper = ifelse(grepl('-',upper),str_c('',upper),str_c(' ',upper))
-  # Format lower
-  lower = formatC(lower, format = 'f', digits = 2)
-  lower = ifelse(grepl('-',lower),str_c(' ',lower),str_c('  ',lower))
-  # Format interval
+  upper = formatC(upper, format = 'f', digits = 3)
+  upper = ifelse(grepl('-',upper),str_c('',upper),str_c('  ',upper))
+  lower = formatC(lower, format = 'f', digits = 3)
+  lower = ifelse(grepl('-',lower),str_c(' ',lower),str_c('   ',lower))
   interval = str_c('[', lower, ' , ', upper, ' ]')
-  
-  # Get chars in interval
-  MAX_LENGTH = 20
-  interval = str_pad(interval,MAX_LENGTH,side='left')
-
-  # Format mean
-  mean = formatC(mean, format = 'f', digits = 2)
-  
-  return(str_c(mean, ' ', interval))
-  
+  mean = formatC(mean, format = 'f', digits = 3)
+  return(str_c(mean, '   ', interval))
 }
   
 table_text <- cbind(c(NA, seq(1, length(clusterPrepPlotDfGrouped$primary_topic))), 
                     c("Primary Topic", as.vector(clusterPrepPlotDfGrouped$primary_topic)),
-                    c("95% Confidence Interval",formatInterval(clusterPrepPlotDfGrouped$avg_ci_point_estimate,
+                    c("Confidence Interval (95%)",formatInterval(clusterPrepPlotDfGrouped$avg_ci_point_estimate,
                                                                clusterPrepPlotDfGrouped$avg_ci_lower_bound,
                                                                clusterPrepPlotDfGrouped$avg_ci_upper_bound)))
                    
@@ -643,7 +640,6 @@ forestplot(table_text,
            lwd.ci=1,
            clip=c(-.1,1))
 dev.off()
-
 
 # PLOT _
 # Basic summary graphs
@@ -856,8 +852,6 @@ time_df %>%
 
 
 # PLOT _
-# Effects of spend on clicks
-fit <- lm(AdSpend ~ Clicks, data = full)
-plot_summs(fit)
+
 # PLOT _ Topic quality
 # topicQuality(stm, docs, xlab = "Semantic Coherence", ylab = "Exclusivity", labels = 1:ncol(stm$theta), M = 10)
