@@ -69,8 +69,6 @@ nums <- c(
   "61", "62", "63", "64", "64", "66"
 )
 
-cormatrix_glasso <- glasso(cormatrix)
-
 qgraph(cormatrix, 
        layout = "spring",
        graph = "glasso",
@@ -80,7 +78,7 @@ qgraph(cormatrix,
        labels = nums,
        vsize = group_sizes$rank,
        filetype = "pdf",
-       filename = "~/Documents/coolplottopic2",
+       filename = "~/Documents/coolplot-topic",
        cut = .25,
        minimum = 0.1,
        width = 17.5,
