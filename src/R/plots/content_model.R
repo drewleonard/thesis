@@ -22,19 +22,19 @@ modelContentInterests <- stm(out$documents, out$vocab, K = 49,
                            data = out$meta, init.type = "Spectral")
 
 # Time and interests interaction
-poliblogInteraction4 <- stm(out$documents, out$vocab, K = 49,
-                            prevalence =~ AccountGroupCluster,
-                            content =~ AccountGroupCluster,
-                            interactions = FALSE,
-                            data = out$meta, init.type = "Spectral")
-
-plot(poliblogInteraction4, 
+# stmContentCluster <- stm(out$documents, out$vocab, K = 49,
+#                             prevalence =~ AccountGroupCluster,
+#                             content =~ AccountGroupCluster,
+#                             interactions = FALSE,
+#                             data = out$meta, init.type = "Spectral")
+stmContentCluster <- readRDS('rds/model_content_cluster.RDS')
+plot(stmContentCluster, 
      type = "perspectives", 
-     n = 30,
+     n = 100,
      covarlevels = c('cluster_1', 'cluster_2'),
-     topics = 21)
+     topics = 34)
 
-plot(poliblogInteraction4, 
+plot(stmContentCluster, 
      type = "perspectives", 
      n = 30,
      covarlevels = c('cluster_1', 'cluster_2'),

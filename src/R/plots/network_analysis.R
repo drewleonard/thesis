@@ -40,8 +40,8 @@ topicNames <- c(
   "Black Empowerment"
 )
 
-edges <- read.csv("csv/group_to_group_topic.csv")
-nodes <- read.csv("csv/group_node_topic.csv")
+edges <- read.csv("csv/group_to_group.csv")
+nodes <- read.csv("csv/group_node.csv")
 
 edges_spread <- edges %>%
   spread(group2, weight)

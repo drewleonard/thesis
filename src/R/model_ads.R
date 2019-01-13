@@ -47,4 +47,4 @@ topics <- topics[,c('AdID','primary_topic')]
 
 # Create df with full ad data + topic loadings
 full <- left_join(df, topics,  by=c("AdID" = "AdID"))
-write_csv(full, "~/Documents/thesis/data/csv/df_interests_spline_age_49.csv")
+#write_csv(full, "~/Documents/thesis/data/csv/df_interests_spline_age_49.csv")

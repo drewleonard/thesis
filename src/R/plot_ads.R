@@ -535,7 +535,7 @@ col.ord <- order.dendrogram(dd.col)
 
 lattice.options(axis.padding = list(factor = 0.5))
 
-pdf("~/Documents/thesis/data/figures/interests_topics_heatmap.pdf")
+# pdf("~/Documents/thesis/data/figures/interests_topics_heatmap.pdf")
 levelplot(d[row.ord, col.ord],
   aspect = "fill",
   xlab = "Discussed Topics",
@@ -568,7 +568,7 @@ levelplot(d[row.ord, col.ord],
   )
 )
 
-dev.off()
+# dev.off()
 
 # PLOT _
 # Plot group network

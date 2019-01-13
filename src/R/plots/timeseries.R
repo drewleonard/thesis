@@ -76,3 +76,10 @@ axis(1, at=c(20150000,20155000,20160000,20165000,20170000),
 axis(2, at=c(-0.5,0.0,0.2,0.4,0.6,0.8), 
      tck = -0.00)
 dev.off()
+
+plot(readRDS('rds/model_content_interests.RDS'), 
+     type = "perspectives", 
+     n = 200,
+     covarlevels = c('Right Wing', 'Islam'),
+     topics = 10)
+stm_content_interests <- readRDS('rds/model_content_interests.RDS')
