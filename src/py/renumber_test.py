@@ -22,4 +22,4 @@ for n in range(0, max_id):
 # Print dictionary
 with open(img_map_path, 'rb') as handle:
     b = pickle.load(handle)
-    # print b
+    print len(b)
