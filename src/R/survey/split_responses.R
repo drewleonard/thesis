@@ -13,7 +13,7 @@ fb_df <- read_csv("data/csv/fb_gold.csv") %>%
 # Read in survey data
 image_tags <- paste("imgTagsChild.imgTag", c(0:9), sep="")
 survey_df <- read_csv("data/csv/survey/dummy_responses.csv") %>% 
-  slice(3:3) %>% 
+  slice(3:10) %>% 
   gather("image_tag", "image_url", image_tags) %>% 
   group_by(image_url) %>% 
   mutate(image_id = as.numeric(str_extract_all(image_url, "[0-9]+")[[1]])) %>% 
