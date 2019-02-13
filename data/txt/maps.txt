@@ -1,0 +1,10 @@
+ad_id_map.pickle
+k: file id (e.g., P(1)0003655)
+v: image n (e.g., 0-3500+ incremental)
+created: renumber.py
+
+ad_id_file_id_map.pickle
+k: ad id (e.g., from json file)
+v: file id (e.g., P(1)0003655)
+created: map_ad_id_file_id.py
+
