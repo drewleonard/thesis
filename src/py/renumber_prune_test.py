@@ -1,7 +1,7 @@
 import os
 import pickle
 
-img_dir = "/Users/drewnleonard/Documents/thesis/data/png/png_small_keep_renumbered"
+img_dir = "/Users/drewnleonard/Documents/thesis/data/png/png_smaller_keep_renumbered"
 img_map_path = "/Users/drewnleonard/Documents/thesis/data/pickle/ad_id_map_pruned.pickle"
 
 # Get max id

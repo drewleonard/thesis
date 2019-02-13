@@ -82,8 +82,4 @@ for image_path in os.listdir(image_dir):
         img_n_master += 1
         print(img_n_master)
 
-# # Save image id map
-with open('/Users/drewnleonard/Documents/thesis/data/pickle/ad_id_map_small.pickle', 'wb') as handle:
-    pickle.dump(img_id_map, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
 
