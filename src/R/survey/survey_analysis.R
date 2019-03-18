@@ -157,6 +157,7 @@ df_survey_small <- df_survey %>%
     img9_affect_race = img9_q0_5 - img9_q0_4
   )
 
+# Get df for given response
 df_survey_affect_race <- df_survey_small %>%
   gather(
     "img_n",
@@ -219,7 +220,7 @@ df_survey_affect_race <- df_survey_small %>%
          response,
          img_key)
 
-# Merge dfs
+# Merge survey and facebook dfs
 df_merged <-
   left_join(df_survey_affect_race, df_fb, by = c("img_key" = "survey_number"))
 
@@ -228,32 +229,39 @@ df_merged_small <- df_merged %>%
   select(img_key, response, AdText)
 
 # Covert to and pre-process corpus
-corpus <- tm::Corpus(VectorSource(df_merged_small$AdText))
-corpus <- tm_map(corpus, content_transformer(tolower))
-corpus <- tm_map(corpus, removeNumbers)
-corpus <- tm_map(corpus, removePunctuation)
-corpus <- tm_map(corpus, removeWords, stopwords())
-corpus <- tm_map(corpus, stemDocument)
-corpus <- tm_map(corpus, stripWhitespace)
+corpus <-
+  tm::VCorpus(tm::VectorSource(df_merged_small$AdText),
+              readerControl = list(language = "en"))
+corpus <- tm::tm_map(corpus, tm::stripWhitespace)
+corpus <- tm::tm_map(corpus, tm::content_transformer(tolower))
+corpus <-
+  tm::tm_map(corpus, tm::removePunctuation, preserve_intra_word_dashes = TRUE)
+corpus <- tm::tm_map(corpus, tm::removeWords, tm::stopwords("en"))
+corpus <- tm::tm_map(corpus, tm::removeNumbers)
+corpus <-
+  tm::tm_map(corpus, tm::removePunctuation, preserve_intra_word_dashes = TRUE)
+corpus <- tm::tm_map(corpus, tm::stemDocument, language = "en")
 
 # Convert corpus to dtm
-dtm <- DocumentTermMatrix(corpus)
+dtm <- tm::DocumentTermMatrix(corpus, control=list(wordLengths=c(3,Inf)))
 
-# Make dtm sparse and convert to df
-# dtm_sparse <- removeSparseTerms(dtm, 0.98)
-dtm_sparse <- dtm
-df_dtm_sparse <- as.data.frame(as.matrix(dtm_sparse), stringsAsFactors=False)
+# Make dtm sparse
+dtm_sparse <- tm::removeSparseTerms(dtm, 0.99875)
+
+# dtm_sparse <- dtm
+df_dtm_sparse <-
+  as.data.frame(as.matrix(dtm_sparse), stringsAsFactors = False)
 
 # Join df_dfm onto df_merged_small
-df_merged_small_dfm <- 
+df_merged_small_dfm <-
   merge(df_merged_small, df_dtm_sparse, by = "row.names")
 
 # Split into training and testing sets
-Y <- df_merged_small_dfm %>% 
+Y <- df_merged_small_dfm %>%
   pull(response)
 
-X <- df_merged_small_dfm %>% 
-  select(-c('Row.names','img_key','response','AdText'))
+X <- df_merged_small_dfm %>%
+  select(-c('Row.names', 'img_key', 'response', 'AdText'))
 
 # Split at specific randomization
 set.seed(1)
@@ -261,6 +269,59 @@ train.ind <-
   sample(1:nrow(X), size = 0.5 * nrow(X), replace = FALSE)
 
 # Search for K
-sibp.search_15_5_75 <- sibp(X, Y, K = 15, alpha = 3, sigmasq.n = 0.75, train.ind = train.ind)
-saveRDS(sibp.search_15_5_75, 'rds/sibp.search_15_5_75.RDS')
-sibp_top_words(sibp.search_15_5_75, colnames(X), 10, verbose = TRUE)
+sibp.search_10_2_75_99875 <-
+  sibp(
+    X,
+    Y,
+    K = 10,
+    alpha = 2,
+    sigmasq.n = 0.75,
+    train.ind = train.ind
+  )
+saveRDS(sibp.search_10_2_75_99875, 'rds/sibp.search_10_2_75_99875.RDS')
+
+sibp.search_15_2_75_99875 <-
+  sibp(
+    X,
+    Y,
+    K = 15,
+    alpha = 2,
+    sigmasq.n = 0.75,
+    train.ind = train.ind
+  )
+saveRDS(sibp.search_15_2_75_99875, 'rds/sibp.search_15_2_75_99875.RDS')
+
+sibp.search_20_2_75_99875 <-
+  sibp(
+    X,
+    Y,
+    K = 20,
+    alpha = 2,
+    sigmasq.n = 0.75,
+    train.ind = train.ind
+  )
+saveRDS(sibp.search_20_2_75_99875, 'rds/sibp.search_20_2_75_99875.RDS')
+
+sibp.search_25_2_75_99875 <-
+  sibp(
+    X,
+    Y,
+    K = 25,
+    alpha = 2,
+    sigmasq.n = 0.75,
+    train.ind = train.ind
+  )
+saveRDS(sibp.search_25_2_75_99875, 'rds/sibp.search_25_2_75_99875.RDS')
+
+sibp.search_3_1_99875 <-
+  sibp(
+    X,
+    Y,
+    K = 25,
+    alpha = 3,
+    sigmasq.n = 1,
+    train.ind = train.ind
+  )
+saveRDS(sibp.search_3_1_99875, 'rds/sibp.search_3_1_99875.RDS')
+sibp_top_words(sibp.search_20_2_75_99875, colnames(X), 10, verbose = TRUE)
+
