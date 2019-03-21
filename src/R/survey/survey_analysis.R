@@ -6,15 +6,48 @@ library(data.table)
 library(texteffect)
 library(tidyverse)
 library(tm)
+library(textstem)
+library(stringr)
+library(tokenizers)
 
 # Function for getting image n from tag
 get_image_n <- function(image_tag) {
   as.numeric(str_extract_all(image_tag, "[0-9]+")[[1]])
 }
 
+# Function for removing punctuation besides hashtag
+remove_punctiation_helper <- function(x) {
+  x <- gsub("#", "\002", x)
+  x <- gsub("_", "\003", x)
+  x <- gsub("[[:punct:]]+", "", x)
+  x <- gsub("\002", "#", x, fixed = TRUE)
+  gsub("\003", "_", x, fixed = TRUE)
+}
+remove_punctiation <-
+  function (x, preserve_intra_word_dashes = FALSE) {
+    if (preserve_intra_word_dashes) {
+      x <- gsub("(\\w)-(\\w)", "\\1\001\\2", x)
+      x <- remove_punctiation_helper(x)
+      gsub("\001", "-", x, fixed = TRUE)
+    } else {
+      remove_punctiation_helper(x)
+    }
+  }
+
+# Function to collapse hashtags to lemmas
+collapse_punctuation <- function (x) {
+  x <- gsub("# ", "#", x, fixed = TRUE)
+  gsub(" _ ", "_", x, fixed = TRUE)
+}
+
+# Function to remove common terms
+remove_common_terms <- function (x, pct) {
+  x[, slam::col_sums(x) / nrow(x) <= pct]
+}
+
 # Load survey data
 # 3259 responses
-df_survey <- read.csv('csv/survey/IRA.csv')
+df_survey <- read_csv('csv/survey/IRA.csv')
 
 # Load facebook data
 df_fb <- read_csv("csv/fb_gold.csv") %>%
@@ -28,7 +61,6 @@ df_survey_small <- df_survey %>%
     ResponseId,
     Status,
     Finished,
-    Duration..in.seconds.,
     Q4,
     Q5,
     Q6,
@@ -121,7 +153,7 @@ df_survey_small <- df_survey %>%
     img9_q1,
     img9_q2
   ) %>%
-  rename(
+  dplyr::rename(
     gender = Q4,
     race = Q5,
     income = Q6,
@@ -226,27 +258,56 @@ df_merged <-
 
 # Select just responses and texts
 df_merged_small <- df_merged %>%
+  mutate(
+    bigrams = tokenize_ngrams(
+      AdText,
+      n = 2,
+      lowercase = FALSE,
+      ngram_delim = "_",
+      stopwords = tm::stopwords(kind = "en")
+    ),
+    bigrams_collapsed = paste(bigrams, collapse = ' ')
+  ) %>%
+  unite(united, AdText, bigrams_collapsed, sep = " ") %>%
+  dplyr::rename(AdText = united) %>%
   select(img_key, response, AdText)
 
-# Covert to and pre-process corpus
+# Covert to corpus
 corpus <-
   tm::VCorpus(tm::VectorSource(df_merged_small$AdText),
               readerControl = list(language = "en"))
+
+# Strip whitespace
 corpus <- tm::tm_map(corpus, tm::stripWhitespace)
+
+# Make lowercase
 corpus <- tm::tm_map(corpus, tm::content_transformer(tolower))
+
+# Remove punctuation except pound symbol and apostropher
 corpus <-
-  tm::tm_map(corpus, tm::removePunctuation, preserve_intra_word_dashes = TRUE)
+  tm::tm_map(corpus,
+             tm::content_transformer(remove_punctiation),
+             preserve_intra_word_dashes = TRUE)
+# Remove stop words
 corpus <- tm::tm_map(corpus, tm::removeWords, tm::stopwords("en"))
+
+# Remove numbers
 corpus <- tm::tm_map(corpus, tm::removeNumbers)
+
+# Lemmatize
 corpus <-
-  tm::tm_map(corpus, tm::removePunctuation, preserve_intra_word_dashes = TRUE)
-corpus <- tm::tm_map(corpus, tm::stemDocument, language = "en")
+  tm_map(corpus,
+         tm::content_transformer(textstem::lemmatize_strings))
+corpus <-
+  tm_map(corpus, tm::content_transformer(collapse_punctuation))
 
 # Convert corpus to dtm
-dtm <- tm::DocumentTermMatrix(corpus, control=list(wordLengths=c(3,Inf)))
+dtm <-
+  tm::DocumentTermMatrix(corpus, control = list(wordLengths = c(3, Inf)))
 
 # Make dtm sparse
-dtm_sparse <- tm::removeSparseTerms(dtm, 0.99875)
+dtm_sparse <- tm::removeSparseTerms(dtm, 0.997)
+dtm_sparse <- remove_common_terms(dtm_sparse, 0.10)
 
 # dtm_sparse <- dtm
 df_dtm_sparse <-
@@ -263,65 +324,24 @@ Y <- df_merged_small_dfm %>%
 X <- df_merged_small_dfm %>%
   select(-c('Row.names', 'img_key', 'response', 'AdText'))
 
+model <- readRDS('./rds/sibp.search_5_grams_multi.RDS')
+ranks <- texteffect::sibp_rank_runs(model, X, num.words = 10)
+sibp_top_words(model[["3"]][["0.75"]][[1]], colnames(X), 10, verbose = TRUE)
+
 # Split at specific randomization
-set.seed(1)
-train.ind <-
-  sample(1:nrow(X), size = 0.5 * nrow(X), replace = FALSE)
-
-# Search for K
-sibp.search_10_2_75_99875 <-
-  sibp(
-    X,
-    Y,
-    K = 10,
-    alpha = 2,
-    sigmasq.n = 0.75,
-    train.ind = train.ind
-  )
-saveRDS(sibp.search_10_2_75_99875, 'rds/sibp.search_10_2_75_99875.RDS')
-
-sibp.search_15_2_75_99875 <-
-  sibp(
-    X,
-    Y,
-    K = 15,
-    alpha = 2,
-    sigmasq.n = 0.75,
-    train.ind = train.ind
-  )
-saveRDS(sibp.search_15_2_75_99875, 'rds/sibp.search_15_2_75_99875.RDS')
-
-sibp.search_20_2_75_99875 <-
-  sibp(
-    X,
-    Y,
-    K = 20,
-    alpha = 2,
-    sigmasq.n = 0.75,
-    train.ind = train.ind
-  )
-saveRDS(sibp.search_20_2_75_99875, 'rds/sibp.search_20_2_75_99875.RDS')
-
-sibp.search_25_2_75_99875 <-
-  sibp(
-    X,
-    Y,
-    K = 25,
-    alpha = 2,
-    sigmasq.n = 0.75,
-    train.ind = train.ind
-  )
-saveRDS(sibp.search_25_2_75_99875, 'rds/sibp.search_25_2_75_99875.RDS')
-
-sibp.search_3_1_99875 <-
-  sibp(
-    X,
-    Y,
-    K = 25,
-    alpha = 3,
-    sigmasq.n = 1,
-    train.ind = train.ind
-  )
-saveRDS(sibp.search_3_1_99875, 'rds/sibp.search_3_1_99875.RDS')
-sibp_top_words(sibp.search_20_2_75_99875, colnames(X), 10, verbose = TRUE)
-
+# set.seed(1)
+# train.ind <-
+#   sample(1:nrow(X), size = 0.5 * nrow(X), replace = FALSE)
+# 
+# sibp.search_5_grams_multi <-
+#   texteffect::sibp_param_search(
+#     X,
+#     Y,
+#     K = 5,
+#     alphas = c(3),
+#     sigmasq.ns = c(0.75),
+#     iters = 1,
+#     train.ind = train.ind
+#   )
+# saveRDS(sibp.search_5_grams_multi,
+#         'sibp.search_5_grams_multi.RDS')

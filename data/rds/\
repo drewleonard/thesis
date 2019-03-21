@@ -1,0 +1,12 @@
+F77 = /usr/local/bin/gfortran
+FC = $F77
+#CXX =  /usr/local/clang6/bin/clang++  -Wall
+LDFLAGS=-L/usr/local/clang6/lib
+#CC=  /usr/local/clang6/bin/clang
+SHLIB_CXXLD=ccache /usr/local/clang6/bin/clang++
+CXX11 =  /usr/local/clang6/bin/clang++
+CXX98 =  /usr/local/clang6/bin/clang++
+CXX14 =  /usr/local/clang6/bin/clang++
+CC=ccache clang -Qunused-arguments
+CXX=ccache clang++ -Qunused-arguments
+CCACHE_CPP2=yes
