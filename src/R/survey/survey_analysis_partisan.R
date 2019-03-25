@@ -25,6 +25,7 @@ remove_punctiation_helper <- function(x) {
   x <- gsub("\002", "#", x, fixed = TRUE)
   gsub("\003", "_", x, fixed = TRUE)
 }
+
 remove_punctiation <-
   function (x, preserve_intra_word_dashes = FALSE) {
     if (preserve_intra_word_dashes) {
@@ -47,13 +48,72 @@ remove_common_terms <- function (x, pct) {
   x[, slam::col_sums(x) / nrow(x) <= pct]
 }
 
+sibp_amce_temp <- function(sibp.fit,
+                           X,
+                           Y,
+                           G = NULL,
+                           seed = 0,
+                           level = 0.05,
+                           thresh = 0.9) {
+  # Want it to be the case that G %*% beta selects the correct beta
+  if (is.null(G)) {
+    G <- matrix(1, nrow = nrow(X), ncol = 1)
+  }
+  
+  set.seed(seed)
+  
+  G.test <- G[sibp.fit$test.ind, , drop = FALSE]
+  Z.test <- infer_Z(sibp.fit, X)
+  Y.test <- (Y[sibp.fit$test.ind] - sibp.fit$meanY) / sibp.fit$sdY
+  
+  Z.hard <-
+    apply(Z.test, 2, function(z)
+      sapply(z, function(zi)
+        ifelse(zi >= 0.9, 1, 0)))
+  
+  L <- sibp.fit$L
+  K <- sibp.fit$K
+  
+  if (L == 1) {
+    fit <- lm(Y.test ~ Z.hard)
+  }
+  else{
+    rhsmat <- c()
+    for (l in 1:L) {
+      rhsmat <- cbind(rhsmat, Z.hard * G.test[, l])
+    }
+    fit <- lm(Y.test ~ -1 + as.matrix(G.test) + rhsmat)
+  }
+  ci.bounds <-
+    cbind(
+      coef(fit) + qnorm(level / 2) * summary(fit)$coefficients[, 2],
+      coef(fit) + qnorm(1 - level / 2) * summary(fit)$coefficients[, 2]
+    )
+  
+  cidf <- data.frame(
+    x = 1:((K + 1) * L),
+    effect = coef(fit),
+    L = ci.bounds[, 1],
+    U = ci.bounds[, 2]
+  )
+  cidf[, -1] <- cidf[, -1] * sibp.fit$sdY
+  sibp.amce <- cidf
+  return(sibp.amce)
+}
+
 # Load survey data
 # 3259 responses
-df_survey <- read.csv('data/IRA.csv')
+df_survey <- read.csv('csv/survey/IRA.csv')
 
 # Load facebook data
-df_fb <- read_csv("data/fb_gold.csv") %>%
+df_fb <- read_csv("csv/fb_gold.csv") %>%
   filter(survey_number != "Unavailable") %>%
+  filter(!grepl('musicfb', AdText)) %>%
+  filter(!grepl('facemusic', AdText)) %>%
+  filter(!grepl('music', AdText)) %>%
+  filter(!grepl('browser', AdText)) %>%
+  filter(!grepl('download', AdText)) %>%
+  filter(!grepl('online_player', AdText)) %>%
   mutate(survey_number = as.numeric(survey_number))
 
 # Get small survey frame
@@ -168,64 +228,77 @@ df_survey_small <- df_survey %>%
     age = Q13,
     class = Q203
   ) %>%
-  filter(race == 1 | race == 2) %>% 
+  # Democrat == 1
+  # Republican == 2
+  filter(partisanship == 1 | partisanship == 2) %>%
   mutate(
-    img0_affect_race = ifelse(race == 1, img0_q0_4 - img0_q0_5, img0_q0_5 - img0_q0_4),
-    img1_affect_race = ifelse(race == 1, img1_q0_4 - img1_q0_5, img1_q0_5 - img1_q0_4),
-    img2_affect_race = ifelse(race == 1, img2_q0_4 - img2_q0_5, img2_q0_5 - img2_q0_4),
-    img3_affect_race = ifelse(race == 1, img3_q0_4 - img3_q0_5, img3_q0_5 - img3_q0_4),
-    img4_affect_race = ifelse(race == 1, img4_q0_4 - img4_q0_5, img4_q0_5 - img4_q0_4),
-    img5_affect_race = ifelse(race == 1, img5_q0_4 - img5_q0_5, img5_q0_5 - img5_q0_4),
-    img6_affect_race = ifelse(race == 1, img6_q0_4 - img6_q0_5, img6_q0_5 - img6_q0_4),
-    img7_affect_race = ifelse(race == 1, img7_q0_4 - img7_q0_5, img7_q0_5 - img7_q0_4),
-    img8_affect_race = ifelse(race == 1, img8_q0_4 - img8_q0_5, img8_q0_5 - img8_q0_4),
-    img9_affect_race = ifelse(race == 1, img9_q0_4 - img9_q0_5, img9_q0_5 - img9_q0_4)
+    # Strong partisan == 1
+    # Not strong partisn == 2
+    partisanship_strength = ifelse((partisanship == 1 &
+                                      partisanship_strength_democrat == 1) |
+                                     (partisanship == 2 & partisanship_strength_republican == 1),
+                                   1,
+                                   2
+    )) %>%
+  mutate(
+    # img*_q0_1 measures feelings toward Democrats
+    # img*_q0_2 measures feelings toward Republicans
+    img0_affect_partisanship = ifelse(partisanship == 1, img0_q0_1 - img0_q0_2, img0_q0_2 - img0_q0_1),
+    img1_affect_partisanship = ifelse(partisanship == 1, img1_q0_1 - img1_q0_2, img1_q0_2 - img1_q0_1),
+    img2_affect_partisanship = ifelse(partisanship == 1, img2_q0_1 - img2_q0_2, img2_q0_2 - img2_q0_1),
+    img3_affect_partisanship = ifelse(partisanship == 1, img3_q0_1 - img3_q0_2, img3_q0_2 - img3_q0_1),
+    img4_affect_partisanship = ifelse(partisanship == 1, img4_q0_1 - img4_q0_2, img4_q0_2 - img4_q0_1),
+    img5_affect_partisanship = ifelse(partisanship == 1, img5_q0_1 - img5_q0_2, img5_q0_2 - img5_q0_1),
+    img6_affect_partisanship = ifelse(partisanship == 1, img6_q0_1 - img6_q0_2, img6_q0_2 - img6_q0_1),
+    img7_affect_partisanship = ifelse(partisanship == 1, img7_q0_1 - img7_q0_2, img7_q0_2 - img7_q0_1),
+    img8_affect_partisanship = ifelse(partisanship == 1, img8_q0_1 - img8_q0_2, img8_q0_2 - img8_q0_1),
+    img9_affect_partisanship = ifelse(partisanship == 1, img9_q0_1 - img9_q0_2, img9_q0_2 - img9_q0_1)
   )
 
 # Get df for given response
-df_survey_affect_race <- df_survey_small %>%
+df_survey_affect_partisanship <- df_survey_small %>%
   gather(
     "img_n",
     "response",
-    img0_affect_race,
-    img1_affect_race,
-    img2_affect_race,
-    img3_affect_race,
-    img4_affect_race,
-    img5_affect_race,
-    img6_affect_race,
-    img7_affect_race,
-    img8_affect_race,
-    img9_affect_race
+    img0_affect_partisanship,
+    img1_affect_partisanship,
+    img2_affect_partisanship,
+    img3_affect_partisanship,
+    img4_affect_partisanship,
+    img5_affect_partisanship,
+    img6_affect_partisanship,
+    img7_affect_partisanship,
+    img8_affect_partisanship,
+    img9_affect_partisanship
   ) %>% mutate(img_tag = ifelse(
-    img_n == "img0_affect_race",
+    img_n == "img0_affect_partisanship",
     as.character(imgTagsChild.imgTag0),
     ifelse(
-      img_n == "img1_affect_race",
+      img_n == "img1_affect_partisanship",
       as.character(imgTagsChild.imgTag1),
       ifelse(
-        img_n == "img2_affect_race",
+        img_n == "img2_affect_partisanship",
         as.character(imgTagsChild.imgTag2),
         ifelse(
-          img_n == "img3_affect_race",
+          img_n == "img3_affect_partisanship",
           as.character(imgTagsChild.imgTag3),
           ifelse(
-            img_n == "img4_affect_race",
+            img_n == "img4_affect_partisanship",
             as.character(imgTagsChild.imgTag4),
             ifelse(
-              img_n == "img5_affect_race",
+              img_n == "img5_affect_partisanship",
               as.character(imgTagsChild.imgTag5),
               ifelse(
-                img_n == "img6_affect_race",
+                img_n == "img6_affect_partisanship",
                 as.character(imgTagsChild.imgTag6),
                 ifelse(
-                  img_n == "img7_affect_race",
+                  img_n == "img7_affect_partisanship",
                   as.character(imgTagsChild.imgTag7),
                   ifelse(
-                    img_n == "img8_affect_race",
+                    img_n == "img8_affect_partisanship",
                     as.character(imgTagsChild.imgTag8),
                     ifelse(
-                      img_n == "img9_affect_race",
+                      img_n == "img9_affect_partisanship",
                       as.character(imgTagsChild.imgTag9),
                       NA
                     )
@@ -238,17 +311,20 @@ df_survey_affect_race <- df_survey_small %>%
       )
     )
   )) %>%
-  filter(!is.na(response)) %>%
   rowwise() %>%
+  filter(!is.na(response)) %>%
   mutate(img_key = get_image_n(img_tag)) %>%
   select(ResponseId,
          response,
-  	     race,
+         partisanship,
+         partisanship_strength,
          img_key)
 
 # Merge survey and facebook dfs
 df_merged <-
-  left_join(df_survey_affect_race, df_fb, by = c("img_key" = "survey_number"))
+  left_join(df_survey_affect_partisanship,
+            df_fb,
+            by = c("img_key" = "survey_number"))
 
 # Select just responses and texts
 df_merged_small <- df_merged %>%
@@ -264,7 +340,7 @@ df_merged_small <- df_merged %>%
   ) %>%
   unite(united, AdText, bigrams_collapsed, sep = " ") %>%
   rename(AdText = united) %>%
-  select(img_key, response, AdText, race,partisanship)
+  select(img_key, response, AdText, partisanship, partisanship_strength)
 
 # Covert to corpus
 corpus <-
@@ -282,6 +358,7 @@ corpus <-
   tm::tm_map(corpus,
              tm::content_transformer(remove_punctiation),
              preserve_intra_word_dashes = TRUE)
+
 # Remove stop words
 corpus <- tm::tm_map(corpus, tm::removeWords, tm::stopwords("en"))
 
@@ -301,113 +378,71 @@ dtm <-
 
 # Make dtm sparse
 dtm_sparse <- tm::removeSparseTerms(dtm, 0.99)
-#dtm_sparse <- remove_common_terms(dtm_sparse, 0.10)
-
-dim(dtm_sparse)
-
-#dtm_sparse <- dtm
 df_dtm_sparse <-
   as.data.frame(as.matrix(dtm_sparse), stringsAsFactors = False)
 
 # Join df_dfm onto df_merged_small
 df_merged_small_dfm <-
   merge(df_merged_small, df_dtm_sparse, by = "row.names")
-names(df_merged_small_dfm)
+
 # Split into training and testing sets
 Y <- df_merged_small_dfm %>%
   pull(response)
+
 X <- df_merged_small_dfm %>%
-  select(-c('Row.names', 'img_key', 'response', 'AdText', 'race','partisanship'))
+  select(
+    -c(
+      'Row.names',
+      'img_key',
+      'response',
+      'AdText',
+      'partisanship',
+      'partisanship_strength'
+    )
+  )
 
 print(dim(X))
-names(X)
+
 # Split at specific randomization
 set.seed(1)
 train.ind <-
   sample(1:nrow(X), size = 0.5 * nrow(X), replace = FALSE)
 
-sibp.search_4_grams_multi_3 <-
-  texteffect::sibp_param_search(
-    X,
-    Y,
-    K = 4,
-    alphas = c(4),
-    sigmasq.ns = c(0.50,0.75,1.00),
-    iters = 2,
-    train.ind = train.ind
-  )
-saveRDS(sibp.search_4_grams_multi_3,
-        'sibp.search_4_grams_multi_3.RDS')
-df_merged_small_dfm$race[df_merged_small_dfm$race==2] <-0
-G <- df_merged_small_dfm %>% select(race)#, partisanship)
-G$white <- G$race
-G$black <- abs(G$race - 1)
-
-G <- G %>% select(white,black)
+# Get Nx2 matrix G for sub-population analysis
+df_merged_small_dfm$partisanship[df_merged_small_dfm$partisanship == 2] <-
+  0
+G <- df_merged_small_dfm %>% select(partisanship)
+G$democrat <- G$partisanship
+G$republican <- abs(G$partisanship - 1)
+G <- G %>% select(democrat, republican)
 G <- as.matrix(G)
 
-sibp.search_5_grams_multi_3 <-
+# Search across params for 3 treatments
+sibp.search_3 <-
   texteffect::sibp_param_search(
     X,
     Y,
     K = 3,
-    alphas = c(5),
-    sigmasq.ns = c(.5),
-    iters = 2,
+    alphas = c(3, 4, 5),
+    sigmasq.ns = c(0.50, 0.75, 1.00),
+    iters = 3,
     train.ind = train.ind,
-    G=G,
-    seed=0
+    G = G,
+    seed = 0
   )
 
-sibp_rank_runs(sibp.search_5_grams_multi_3 , X, 10)
-# Qualitatively look at the top candidates
-sibp_top_words(sibp.search_5_grams_multi_3 [["5"]][["0.5"]][[1]], colnames(X), 10, verbose = TRUE)
+# Search across params for 4 treatments
+sibp.search_4 <-
+  texteffect::sibp_param_search(
+    X,
+    Y,
+    K = 3,
+    alphas = c(3, 4, 5),
+    sigmasq.ns = c(0.50, 0.75, 1.00),
+    iters = 3,
+    train.ind = train.ind,
+    G = G,
+    seed = 0
+  )
 
-sibp.fit <- sibp.search_5_grams_multi_3[["5"]][["0.5"]][[1]]
-
-sibp_amce_temp<-function(sibp.fit, X, Y, G = NULL, seed = 0, level = 0.05, thresh = 0.9){
-	# Want it to be the case that G %*% beta selects the correct beta
-	if (is.null(G)){
-		G <- matrix(1, nrow = nrow(X), ncol = 1)
-	}
-	
-	set.seed(seed)
-	
-	G.test <- G[sibp.fit$test.ind,,drop=FALSE]
-	Z.test <- infer_Z(sibp.fit, X)
-	Y.test <- (Y[sibp.fit$test.ind] - sibp.fit$meanY)/sibp.fit$sdY
-	
-	Z.hard <- apply(Z.test, 2, function(z) sapply(z, function(zi) ifelse(zi >= 0.9, 1, 0)))
-	
-	L <- sibp.fit$L
-	K <- sibp.fit$K
-	
-	if (L == 1){
-		fit <- lm(Y.test ~ Z.hard)
-	}
-	else{
-		rhsmat <- c()
-		for (l in 1:L){
-			rhsmat<-cbind(rhsmat,Z.hard*G.test[,l])
-		}
-		fit <- lm(Y.test~-1+as.matrix(G.test)+rhsmat)
-	}
-	ci.bounds <- cbind(coef(fit)+qnorm(level/2)*summary(fit)$coefficients[,2], 
-					   coef(fit)+qnorm(1-level/2)*summary(fit)$coefficients[,2])
-	
-	
-	
-	cidf <- data.frame(x = 1:((K+1)*L), 
-					   effect = coef(fit), 
-					   L = ci.bounds[,1], 
-					   U = ci.bounds[,2])
-	cidf[,-1] <- cidf[,-1]*sibp.fit$sdY
-	sibp.amce <- cidf
-	return(sibp.amce)
-}
-
-sibp.amce<-sibp_amce_temp(sibp.fit, X, Y, G=G)
-
-sibp_amce_plot(sibp.amce, L=2)
-
-save.image(file='survey_analysis_remote_revolution_sw.RData')
+sibp_top_words(sibp.fit, colnames(X), 30, verbose = TRUE)

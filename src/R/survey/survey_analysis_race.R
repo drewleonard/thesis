@@ -410,10 +410,9 @@ sibp.search <-
 sibp_rank_runs(sibp.search , X, 10)
 sibp_top_words(sibp.search [["5"]][["0.5"]][[1]], colnames(X), 10, verbose = TRUE)
 
+# Having assesed options, pull and estimate with model
 sibp.fit <- sibp.search[["5"]][["0.5"]][[1]]
-
 sibp.amce <- sibp_amce_temp(sibp.fit, X, Y, G = G)
-
 sibp_amce_plot(sibp.amce, L = 2)
 
-save.image(file = 'survey_analysis_remote_revolution_sw.RData')
+save.image(file = 'survey_analysis_race.RData')

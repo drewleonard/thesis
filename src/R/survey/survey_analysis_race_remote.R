@@ -1,6 +1,3 @@
-rm(list = ls())
-setwd('~/Documents/thesis/data/')
-
 library(rlang)
 library(data.table)
 library(texteffect)
@@ -103,10 +100,10 @@ sibp_amce_temp <-
 
 # Load survey data
 # 3259 responses
-df_survey <- read.csv('csv/survey/IRA.csv')
+df_survey <- read.csv('data/IRA.csv')
 
 # Load facebook data
-df_fb <- read_csv("csv/fb_gold.csv") %>%
+df_fb <- read_csv("data/fb_gold.csv") %>%
   filter(survey_number != "Unavailable") %>%
   mutate(survey_number = as.numeric(survey_number))
 
