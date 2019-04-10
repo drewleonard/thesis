@@ -1,6 +1,8 @@
 rm(list = ls())
 setwd('~/Documents/thesis/data/')
 
+load('./rdata/survey_analysis_partisan.RData')
+
 library(rlang)
 library(data.table)
 library(texteffect)
@@ -51,7 +53,7 @@ remove_common_terms <- function (x, pct) {
 sibp_amce_temp <- function(sibp.fit,
                            X,
                            Y,
-                           G = NULL,
+                           G,
                            seed = 0,
                            level = 0.05,
                            thresh = 0.9) {
@@ -101,12 +103,90 @@ sibp_amce_temp <- function(sibp.fit,
   return(sibp.amce)
 }
 
+# Function for formatting treatment effects matrix
+format_treatment_effects <- 
+  function(sibp.amce,
+           levels,
+           treatments) {
+    subset_start <- length(levels) + 1
+    subset_end <- nrow(sibp.amce)
+    estimate_df <- sibp.amce[c(subset_start:subset_end),]
+    estimate_df$level <-
+      rep(levels, each = nrow(estimate_df) / length(levels))
+    estimate_df$treatment <-
+      rep(treatments, times = nrow(estimate_df) / length(treatments))
+    estimate_df <- estimate_df %>%
+      select(effect, L, U, level, treatment) %>%
+      arrange(treatment) %>%
+      mutate(L = round(L,2),
+             U = round(U,2),
+             effect = round(effect,2))
+    estimate_df <- estimate_df[, c("treatment", "level", "effect", "L", "U")]
+    print(estimate_df)
+  }
+
+# Function for drawing treatment effects
+draw_treatment_effects <-
+  function(sibp.amce,
+           levels,
+           treatments,
+           levels_title,
+           effect_title,
+           xlim_l,
+           xlim_u,
+           ratio) {
+    subset_start <- length(levels) + 1
+    subset_end <- nrow(sibp.amce)
+    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
+    estimate_df$level <-
+      rep(levels, each = nrow(estimate_df) / length(levels))
+    estimate_df$treatment <-
+      rep(treatments, times = nrow(estimate_df) / length(treatments))
+    estimate_df$treatment = factor(
+      estimate_df$treatment,
+      levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
+    )
+    estimate_df <- estimate_df %>% 
+      filter(level != "Black Republican")
+    
+    estimate_df %>%
+      ggplot(., aes(
+        x = effect,
+        y = level,
+        xmin = L,
+        xmax = U
+      )) +
+      geom_point() +
+      geom_errorbarh(height = .1) +
+      facet_grid(. ~ treatment) +
+      geom_vline(xintercept = 0,
+                 linetype = "solid",
+                 color = "black") +
+      coord_fixed(ratio = 0.50 * abs(xlim_u)) +
+      xlim(xlim_l, xlim_u) +
+      labs(y = levels_title, x = effect_title) +
+      theme_bw() +
+      theme(
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_rect(color = "grey"),
+        axis.line = element_line(color = "grey", size = 0.5),
+        panel.border = element_rect(
+          color = "grey",
+          fill = NA,
+          size = 0.5
+        )
+      )
+    
+  }
+
 # Load survey data
 # 3259 responses
-df_survey <- read.csv('csv/survey/IRA.csv')
+df_survey <- read.csv('data/IRA.csv')
 
 # Load facebook data
-df_fb <- read_csv("csv/fb_gold.csv") %>%
+df_fb <- read_csv("data/fb_gold.csv") %>%
   filter(survey_number != "Unavailable") %>%
   filter(!grepl('musicfb', AdText)) %>%
   filter(!grepl('facemusic', AdText)) %>%
@@ -114,6 +194,9 @@ df_fb <- read_csv("csv/fb_gold.csv") %>%
   filter(!grepl('browser', AdText)) %>%
   filter(!grepl('download', AdText)) %>%
   filter(!grepl('online_player', AdText)) %>%
+  filter(!grepl('safe with us', AdText)) %>%
+  filter(!grepl('bring your friends', AdText)) %>%
+  filter(!grepl('self-defense', AdText)) %>%
   mutate(survey_number = as.numeric(survey_number))
 
 # Get small survey frame
@@ -228,18 +311,12 @@ df_survey_small <- df_survey %>%
     age = Q13,
     class = Q203
   ) %>%
+  # White == 1
+  # Black == 2
+  filter(race == 1 | race == 2) %>%
   # Democrat == 1
   # Republican == 2
   filter(partisanship == 1 | partisanship == 2) %>%
-  mutate(
-    # Strong partisan == 1
-    # Not strong partisn == 2
-    partisanship_strength = ifelse((partisanship == 1 &
-                                      partisanship_strength_democrat == 1) |
-                                     (partisanship == 2 & partisanship_strength_republican == 1),
-                                   1,
-                                   2
-    )) %>%
   mutate(
     # img*_q0_1 measures feelings toward Democrats
     # img*_q0_2 measures feelings toward Republicans
@@ -317,14 +394,15 @@ df_survey_affect_partisanship <- df_survey_small %>%
   select(ResponseId,
          response,
          partisanship,
-         partisanship_strength,
-         img_key)
+         img_key,
+         race)
 
 # Merge survey and facebook dfs
 df_merged <-
-  left_join(df_survey_affect_partisanship,
-            df_fb,
-            by = c("img_key" = "survey_number"))
+  inner_join(df_survey_affect_partisanship,
+             df_fb,
+             by = c("img_key" = "survey_number")) %>%
+  filter(!is.na(AdText))
 
 # Select just responses and texts
 df_merged_small <- df_merged %>%
@@ -340,7 +418,7 @@ df_merged_small <- df_merged %>%
   ) %>%
   unite(united, AdText, bigrams_collapsed, sep = " ") %>%
   rename(AdText = united) %>%
-  select(img_key, response, AdText, partisanship, partisanship_strength)
+  select(img_key, response, AdText, partisanship, race)
 
 # Covert to corpus
 corpus <-
@@ -377,7 +455,7 @@ dtm <-
   tm::DocumentTermMatrix(corpus, control = list(wordLengths = c(3, Inf)))
 
 # Make dtm sparse
-dtm_sparse <- tm::removeSparseTerms(dtm, 0.99)
+dtm_sparse <- tm::removeSparseTerms(dtm, 0.99375)
 df_dtm_sparse <-
   as.data.frame(as.matrix(dtm_sparse), stringsAsFactors = False)
 
@@ -390,59 +468,93 @@ Y <- df_merged_small_dfm %>%
   pull(response)
 
 X <- df_merged_small_dfm %>%
-  select(
-    -c(
-      'Row.names',
-      'img_key',
-      'response',
-      'AdText',
-      'partisanship',
-      'partisanship_strength'
-    )
-  )
-
-print(dim(X))
+  select(-c(
+    'Row.names',
+    'img_key',
+    'response',
+    'AdText',
+    'partisanship',
+    'race.x'
+  ))
 
 # Split at specific randomization
 set.seed(1)
 train.ind <-
   sample(1:nrow(X), size = 0.5 * nrow(X), replace = FALSE)
 
-# Get Nx2 matrix G for sub-population analysis
-df_merged_small_dfm$partisanship[df_merged_small_dfm$partisanship == 2] <-
-  0
-G <- df_merged_small_dfm %>% select(partisanship)
-G$democrat <- G$partisanship
-G$republican <- abs(G$partisanship - 1)
-G <- G %>% select(democrat, republican)
+# Get Nx4 matrix G
+G <- df_merged_small %>%
+  mutate(
+    black_democrat = ifelse(race == 2 & partisanship == 1, 1, 0),
+    white_democrat = ifelse(race == 1 &
+                              partisanship == 1, 1, 0),
+    black_republican = ifelse(race == 2 &
+                                partisanship == 2, 1, 0),
+    white_republican = ifelse(race == 1 &
+                                partisanship == 2, 1, 0)
+  ) %>%
+  select(black_democrat,
+         white_democrat,
+         black_republican,
+         white_republican)
 G <- as.matrix(G)
 
-# Search across params for 3 treatments
-sibp.search_3 <-
+# Search across parameters
+sibp.search <-
   texteffect::sibp_param_search(
     X,
     Y,
     K = 3,
-    alphas = c(3, 4, 5),
+    alphas = c(3, 4),
     sigmasq.ns = c(0.50, 0.75, 1.00),
-    iters = 3,
+    iters = 10,
     train.ind = train.ind,
     G = G,
     seed = 0
   )
 
-# Search across params for 4 treatments
-sibp.search_4 <-
-  texteffect::sibp_param_search(
-    X,
-    Y,
-    K = 3,
-    alphas = c(3, 4, 5),
-    sigmasq.ns = c(0.50, 0.75, 1.00),
-    iters = 3,
-    train.ind = train.ind,
-    G = G,
-    seed = 0
-  )
+sibp.rank <- sibp_rank_runs(sibp.search, X, 30)
 
-sibp_top_words(sibp.fit, colnames(X), 30, verbose = TRUE)
+# Finalized
+sibp.fit <- sibp.search[["4"]][["0.5"]][[2]]
+sibp_top_words(sibp.fit, colnames(X), 10, verbose = TRUE)
+sibp.amce <- sibp_amce_temp(sibp.fit, X, Y, G = G)
+# sibp_amce_plot(sibp.amce, L = 4)
+
+pdf('./figures/survey_analysis_partisan_effects.pdf')
+draw_treatment_effects(
+  sibp.amce = sibp.amce,
+  levels = c(
+    "Black Democrat",
+    "White Democrat",
+    "Black Republican",
+    "White Republican"
+  ),
+  treatments = c("Dangerous Society", "Black Pride", "Identity Support"),
+  levels_title = "",
+  effect_title = "Partisan Affective Polarization",
+  xlim_l = -100,
+  xlim_u = 100
+)
+dev.off()
+
+format_treatment_effects(
+  sibp.amce = sibp.amce,
+  levels = c(
+    "Black Democrat",
+    "White Democrat",
+    "Black Republican",
+    "White Republican"
+  ),
+  treatments = c("Dangerous Society", "Black Pride", "Identity Support")
+)
+
+# Method for viewing interventions with treatment
+r <- df_merged_small_dfm %>%
+  rename(foo_bar = `#africanandproud`) %>%
+  filter(foo_bar != 0) %>%
+  select(foo_bar, AdText) %>%
+  arrange(desc(foo_bar))
+View(r)
+
+save.image('./rdata/survey_analysis_partisan.RData')

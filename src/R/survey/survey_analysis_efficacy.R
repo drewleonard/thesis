@@ -1,0 +1,562 @@
+rm(list = ls())
+setwd('~/Documents/thesis/data/')
+
+load('./rdata/survey_analysis_efficacy.RData')
+
+library(rlang)
+library(data.table)
+library(texteffect)
+library(tidyr)
+library(dplyr)
+library(readr)
+library(tm)
+library(textstem)
+library(stringr)
+library(tokenizers)
+
+# Function for getting image n from tag
+get_image_n <- function(image_tag) {
+  as.numeric(str_extract_all(image_tag, "[0-9]+")[[1]])
+}
+
+# Function for removing punctuation besides hashtag
+remove_punctiation_helper <- function(x) {
+  x <- gsub("#", "\002", x)
+  x <- gsub("_", "\003", x)
+  x <- gsub("[[:punct:]]+", "", x)
+  x <- gsub("\002", "#", x, fixed = TRUE)
+  gsub("\003", "_", x, fixed = TRUE)
+}
+
+remove_punctiation <-
+  function (x, preserve_intra_word_dashes = FALSE) {
+    if (preserve_intra_word_dashes) {
+      x <- gsub("(\\w)-(\\w)", "\\1\001\\2", x)
+      x <- remove_punctiation_helper(x)
+      gsub("\001", "-", x, fixed = TRUE)
+    } else {
+      remove_punctiation_helper(x)
+    }
+  }
+
+# Function to collapse hashtags to lemmas
+collapse_punctuation <- function (x) {
+  x <- gsub("# ", "#", x, fixed = TRUE)
+  gsub(" _ ", "_", x, fixed = TRUE)
+}
+
+# Function to remove common terms
+remove_common_terms <- function (x, pct) {
+  x[, slam::col_sums(x) / nrow(x) <= pct]
+}
+
+sibp_amce_temp <- function(sibp.fit,
+                           X,
+                           Y,
+                           G,
+                           seed = 0,
+                           level = 0.05,
+                           thresh = 0.9) {
+  # Want it to be the case that G %*% beta selects the correct beta
+  if (is.null(G)) {
+    G <- matrix(1, nrow = nrow(X), ncol = 1)
+  }
+  
+  set.seed(seed)
+  
+  G.test <- G[sibp.fit$test.ind, , drop = FALSE]
+  Z.test <- infer_Z(sibp.fit, X)
+  Y.test <- (Y[sibp.fit$test.ind] - sibp.fit$meanY) / sibp.fit$sdY
+  
+  Z.hard <-
+    apply(Z.test, 2, function(z)
+      sapply(z, function(zi)
+        ifelse(zi >= 0.9, 1, 0)))
+  
+  L <- sibp.fit$L
+  K <- sibp.fit$K
+  
+  if (L == 1) {
+    fit <- lm(Y.test ~ Z.hard)
+  }
+  else{
+    rhsmat <- c()
+    for (l in 1:L) {
+      rhsmat <- cbind(rhsmat, Z.hard * G.test[, l])
+    }
+    fit <- lm(Y.test ~ -1 + as.matrix(G.test) + rhsmat)
+  }
+  ci.bounds <-
+    cbind(
+      coef(fit) + qnorm(level / 2) * summary(fit)$coefficients[, 2],
+      coef(fit) + qnorm(1 - level / 2) * summary(fit)$coefficients[, 2]
+    )
+  
+  cidf <- data.frame(
+    x = 1:((K + 1) * L),
+    effect = coef(fit),
+    L = ci.bounds[, 1],
+    U = ci.bounds[, 2]
+  )
+  cidf[, -1] <- cidf[, -1] * sibp.fit$sdY
+  sibp.amce <- cidf
+  return(sibp.amce)
+}
+
+# Function for formatting treatment effects matrix
+format_treatment_effects <- 
+  function(sibp.amce,
+           levels,
+           treatments) {
+    subset_start <- length(levels) + 1
+    subset_end <- nrow(sibp.amce)
+    estimate_df <- sibp.amce[c(subset_start:subset_end),]
+    estimate_df$level <-
+      rep(levels, each = nrow(estimate_df) / length(levels))
+    estimate_df$treatment <-
+      rep(treatments, times = nrow(estimate_df) / length(treatments))
+    estimate_df <- estimate_df %>%
+      select(effect, L, U, level, treatment) %>%
+      arrange(treatment) %>%
+      mutate(L = round(L,2),
+             U = round(U,2),
+             effect = round(effect,2))
+    estimate_df <- estimate_df[, c("treatment", "level", "effect", "L", "U")]
+    print(estimate_df)
+  }
+
+# Function for drawing treatment effects
+draw_treatment_effects <-
+  function(sibp.amce,
+           levels,
+           treatments,
+           levels_title,
+           effect_title,
+           xlim_l,
+           xlim_u,
+           ratio) {
+    subset_start <- length(levels) + 1
+    subset_end <- nrow(sibp.amce)
+    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
+    estimate_df$level <-
+      rep(levels, each = nrow(estimate_df) / length(levels))
+    estimate_df$treatment <-
+      rep(treatments, times = nrow(estimate_df) / length(treatments))
+    estimate_df$treatment = factor(
+      estimate_df$treatment,
+      levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
+    )
+    estimate_df <- estimate_df %>% 
+      filter(level != "Black Republican")
+    
+    estimate_df %>%
+      ggplot(., aes(
+        x = effect,
+        y = level,
+        xmin = L,
+        xmax = U
+      )) +
+      geom_point() +
+      geom_errorbarh(height = .1) +
+      facet_grid(. ~ treatment) +
+      geom_vline(xintercept = 0,
+                 linetype = "solid",
+                 color = "black") +
+      coord_fixed(ratio = 0.50 * abs(xlim_u)) +
+      xlim(xlim_l, xlim_u) +
+      labs(y = levels_title, x = effect_title) +
+      theme_bw() +
+      theme(
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_rect(color = "grey"),
+        axis.line = element_line(color = "grey", size = 0.5),
+        panel.border = element_rect(
+          color = "grey",
+          fill = NA,
+          size = 0.5
+        )
+      )
+    
+  }
+
+# Load survey data
+# 3259 responses
+df_survey <- read.csv('data/IRA.csv')
+
+# Load facebook data
+df_fb <- read_csv("data/fb_gold.csv") %>%
+  filter(survey_number != "Unavailable") %>%
+  filter(!grepl('musicfb', AdText)) %>%
+  filter(!grepl('facemusic', AdText)) %>%
+  filter(!grepl('music', AdText)) %>%
+  filter(!grepl('browser', AdText)) %>%
+  filter(!grepl('download', AdText)) %>%
+  filter(!grepl('online_player', AdText)) %>%
+  filter(!grepl('safe with us', AdText)) %>%
+  filter(!grepl('bring your friends', AdText)) %>%
+  filter(!grepl('self-defense', AdText)) %>%
+  mutate(survey_number = as.numeric(survey_number))
+
+# Get small survey frame
+df_survey_small <- df_survey %>%
+  select(
+    StartDate,
+    ResponseId,
+    Status,
+    Finished,
+    Q4,
+    Q5,
+    Q6,
+    Q7,
+    Q8,
+    Q9,
+    Q10,
+    Q11,
+    Q12,
+    Q13,
+    Q203,
+    imgTagsChild.imgTag0,
+    img0_q0_1,
+    img0_q0_2,
+    img0_q0_4,
+    img0_q0_5,
+    img0_q0_6,
+    img0_q1,
+    img0_q2,
+    imgTagsChild.imgTag1,
+    img1_q0_1,
+    img1_q0_2,
+    img1_q0_4,
+    img1_q0_5,
+    img1_q0_6,
+    img1_q1,
+    img1_q2,
+    imgTagsChild.imgTag2,
+    img2_q0_1,
+    img2_q0_2,
+    img2_q0_4,
+    img2_q0_5,
+    img2_q0_6,
+    img2_q1,
+    img2_q2,
+    imgTagsChild.imgTag3,
+    img3_q0_1,
+    img3_q0_2,
+    img3_q0_4,
+    img3_q0_5,
+    img3_q0_6,
+    img3_q1,
+    img3_q2,
+    imgTagsChild.imgTag4,
+    img4_q0_1,
+    img4_q0_2,
+    img4_q0_4,
+    img4_q0_5,
+    img4_q0_6,
+    img4_q1,
+    img4_q2,
+    imgTagsChild.imgTag5,
+    img5_q0_1,
+    img5_q0_2,
+    img5_q0_4,
+    img5_q0_5,
+    img5_q0_6,
+    img5_q1,
+    img5_q2,
+    imgTagsChild.imgTag6,
+    img6_q0_1,
+    img6_q0_2,
+    img6_q0_4,
+    img6_q0_5,
+    img6_q0_6,
+    img6_q1,
+    img6_q2,
+    imgTagsChild.imgTag7,
+    img7_q0_1,
+    img7_q0_2,
+    img7_q0_4,
+    img7_q0_5,
+    img7_q0_6,
+    img7_q1,
+    img7_q2,
+    imgTagsChild.imgTag8,
+    img8_q0_1,
+    img8_q0_2,
+    img8_q0_4,
+    img8_q0_5,
+    img8_q0_6,
+    img8_q1,
+    img8_q2,
+    imgTagsChild.imgTag9,
+    img9_q0_1,
+    img9_q0_2,
+    img9_q0_4,
+    img9_q0_5,
+    img9_q0_6,
+    img9_q1,
+    img9_q2
+  ) %>%
+  dplyr::rename(
+    gender = Q4,
+    race = Q5,
+    income = Q6,
+    education = Q7,
+    ideology = Q8,
+    partisanship = Q9,
+    partisanship_closer = Q10,
+    partisanship_strength_republican = Q11,
+    partisanship_strength_democrat = Q12,
+    age = Q13,
+    class = Q203
+  ) %>%
+  # White == 1
+  # Black == 2
+  filter(race == 1 | race == 2) %>%
+  # Democrat == 1
+  # Republican == 2
+  filter(partisanship == 1 | partisanship == 2) %>%
+  mutate(
+    # img*_q1 measures political efficacy
+    # Original values [11..15] categorical
+    # 11 == strong efficacy
+    # 15 == weak efficacy
+    img0_efficacy = 16 - as.numeric(img0_q1),
+    img1_efficacy = 16 - as.numeric(img1_q1),
+    img2_efficacy = 16 - as.numeric(img2_q1),
+    img3_efficacy = 16 - as.numeric(img3_q1),
+    img4_efficacy = 16 - as.numeric(img4_q1),
+    img5_efficacy = 16 - as.numeric(img5_q1),
+    img6_efficacy = 16 - as.numeric(img6_q1),
+    img7_efficacy = 16 - as.numeric(img7_q1),
+    img8_efficacy = 16 - as.numeric(img8_q1),
+    img9_efficacy = 16 - as.numeric(img9_q1)
+  )
+
+# Get df for given response
+df_survey_efficacy <- df_survey_small %>%
+  gather(
+    "img_n",
+    "response",
+    img0_efficacy,
+    img1_efficacy,
+    img2_efficacy,
+    img3_efficacy,
+    img4_efficacy,
+    img5_efficacy,
+    img6_efficacy,
+    img7_efficacy,
+    img8_efficacy,
+    img9_efficacy
+  ) %>% mutate(img_tag = ifelse(
+    img_n == "img0_efficacy",
+    as.character(imgTagsChild.imgTag0),
+    ifelse(
+      img_n == "img1_efficacy",
+      as.character(imgTagsChild.imgTag1),
+      ifelse(
+        img_n == "img2_efficacy",
+        as.character(imgTagsChild.imgTag2),
+        ifelse(
+          img_n == "img3_efficacy",
+          as.character(imgTagsChild.imgTag3),
+          ifelse(
+            img_n == "img4_efficacy",
+            as.character(imgTagsChild.imgTag4),
+            ifelse(
+              img_n == "img5_efficacy",
+              as.character(imgTagsChild.imgTag5),
+              ifelse(
+                img_n == "img6_efficacy",
+                as.character(imgTagsChild.imgTag6),
+                ifelse(
+                  img_n == "img7_efficacy",
+                  as.character(imgTagsChild.imgTag7),
+                  ifelse(
+                    img_n == "img8_efficacy",
+                    as.character(imgTagsChild.imgTag8),
+                    ifelse(
+                      img_n == "img9_efficacy",
+                      as.character(imgTagsChild.imgTag9),
+                      NA
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )) %>%
+  rowwise() %>%
+  filter(!is.na(response)) %>%
+  mutate(img_key = get_image_n(img_tag)) %>%
+  select(ResponseId,
+         response,
+         partisanship,
+         race,
+         img_key)
+
+# Merge survey and facebook dfs
+df_merged <-
+  inner_join(df_survey_efficacy,
+             df_fb,
+             by = c("img_key" = "survey_number")) %>%
+  filter(!is.na(AdText))
+
+# Select just responses and texts
+df_merged_small <- df_merged %>%
+  mutate(
+    bigrams = tokenize_ngrams(
+      AdText,
+      n = 3,
+      lowercase = FALSE,
+      ngram_delim = "_",
+      stopwords = tm::stopwords(kind = "en")
+    ),
+    bigrams_collapsed = paste(bigrams, collapse = ' ')
+  ) %>%
+  unite(united, AdText, bigrams_collapsed, sep = " ") %>%
+  rename(AdText = united) %>%
+  select(img_key, response, AdText, race, partisanship)
+
+# Covert to corpus
+corpus <-
+  tm::VCorpus(tm::VectorSource(df_merged_small$AdText),
+              readerControl = list(language = "en"))
+
+# Strip whitespace
+corpus <- tm::tm_map(corpus, tm::stripWhitespace)
+
+# Make lowercase
+corpus <- tm::tm_map(corpus, tm::content_transformer(tolower))
+
+# Remove punctuation except pound symbol and apostropher
+corpus <-
+  tm::tm_map(corpus,
+             tm::content_transformer(remove_punctiation),
+             preserve_intra_word_dashes = TRUE)
+
+# Remove stop words
+corpus <- tm::tm_map(corpus, tm::removeWords, tm::stopwords("en"))
+
+# Remove numbers
+corpus <- tm::tm_map(corpus, tm::removeNumbers)
+
+# Lemmatize
+corpus <-
+  tm_map(corpus,
+         tm::content_transformer(textstem::lemmatize_strings))
+corpus <-
+  tm_map(corpus, tm::content_transformer(collapse_punctuation))
+
+# Convert corpus to dtm
+dtm <-
+  tm::DocumentTermMatrix(corpus, control = list(wordLengths = c(3, Inf)))
+
+# Make dtm sparse
+dtm_sparse <- tm::removeSparseTerms(dtm, 0.99375)
+df_dtm_sparse <-
+  as.data.frame(as.matrix(dtm_sparse), stringsAsFactors = False)
+
+# Join df_dfm onto df_merged_small
+df_merged_small_dfm <-
+  merge(df_merged_small, df_dtm_sparse, by = "row.names")
+
+# Split into training and testing sets
+Y <- df_merged_small_dfm %>%
+  pull(response)
+
+X <- df_merged_small_dfm %>%
+  select(-c(
+    'Row.names',
+    'img_key',
+    'response',
+    'AdText',
+    'race.x',
+    'partisanship'
+  ))
+
+# Split at specific randomization
+set.seed(1)
+train.ind <-
+  sample(1:nrow(X), size = 0.5 * nrow(X), replace = FALSE)
+
+# Get Nx4 matrix G
+G <- df_merged_small %>%
+  mutate(
+    black_democrat = ifelse(race == 2 & partisanship == 1, 1, 0),
+    white_democrat = ifelse(race == 1 &
+                              partisanship == 1, 1, 0),
+    black_republican = ifelse(race == 2 &
+                                partisanship == 2, 1, 0),
+    white_republican = ifelse(race == 1 &
+                                partisanship == 2, 1, 0)
+  ) %>%
+  select(black_democrat,
+         white_democrat,
+         black_republican,
+         white_republican)
+G <- as.matrix(G)
+
+# Search across parameters
+sibp.search <-
+  texteffect::sibp_param_search(
+    X,
+    Y,
+    K = 3,
+    alphas = c(3, 4),
+    sigmasq.ns = c(0.50, 0.75, 1.00),
+    iters = 10,
+    train.ind = train.ind,
+    G = G_race,
+    seed = 0
+  )
+
+sibp.rank <- sibp_rank_runs(sibp.search, X, 30)
+
+# Finalized
+sibp.fit <- sibp.search[["4"]][["1"]][[2]]
+sibp_top_words(sibp.fit, colnames(X), 30, verbose = TRUE)
+sibp.amce <- sibp_amce_temp(sibp.fit, X, Y, G = G)
+sibp_amce_plot(sibp.amce, L = 4)
+
+pdf('./figures/survey_analysis_efficacy_effects.pdf')
+draw_treatment_effects(
+  sibp.amce = sibp.amce,
+  c(
+    "Black Democrat",
+    "White Democract",
+    "Black Republican",
+    "White Republican"
+  ),
+  c("Dangerous Society",  "Black Pride", "Identity Support"),
+  levels_title = "",
+  effect_title = "Political Efficacy",
+  xlim_l = -1.5,
+  xlim_u = 1.5
+)
+dev.off()
+
+format_treatment_effects(
+  sibp.amce = sibp.amce,
+  levels = c(
+    "Black Democrat",
+    "White Democrat",
+    "Black Republican",
+    "White Republican"
+  ),
+  treatments = c("Dangerous Society",  "Black Pride", "Identity Support")
+)
+
+# Method for viewing interventions with treatment
+r <- df_merged_small_dfm %>%
+  rename(foo_bar = need) %>%
+  filter(foo_bar != 0) %>%
+  select(foo_bar, AdText) %>%
+  arrange(desc(foo_bar))
+View(r)
+
+save.image('./rdata/survey_analysis_efficacy.RData')
