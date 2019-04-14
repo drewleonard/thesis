@@ -103,6 +103,46 @@ sibp_amce_temp <- function(sibp.fit,
   return(sibp.amce)
 }
 
+# Function to get amce linear model
+get_amce_model <- function(sibp.fit,
+                           X,
+                           Y,
+                           G,
+                           seed = 0,
+                           level = 0.05,
+                           thresh = 0.9) {
+  # Want it to be the case that G %*% beta selects the correct beta
+  if (is.null(G)) {
+    G <- matrix(1, nrow = nrow(X), ncol = 1)
+  }
+  
+  set.seed(seed)
+  
+  G.test <- G[sibp.fit$test.ind, , drop = FALSE]
+  Z.test <- infer_Z(sibp.fit, X)
+  Y.test <- (Y[sibp.fit$test.ind] - sibp.fit$meanY) / sibp.fit$sdY
+  
+  Z.hard <-
+    apply(Z.test, 2, function(z)
+      sapply(z, function(zi)
+        ifelse(zi >= 0.9, 1, 0)))
+  
+  L <- sibp.fit$L
+  K <- sibp.fit$K
+  
+  if (L == 1) {
+    fit <- lm(Y.test ~ Z.hard)
+  }
+  else{
+    rhsmat <- c()
+    for (l in 1:L) {
+      rhsmat <- cbind(rhsmat, Z.hard * G.test[, l])
+    }
+    fit <- lm(Y.test ~ -1 + as.matrix(G.test) + rhsmat)
+  }
+  return(fit)
+}
+
 # Function for formatting treatment effects matrix
 format_treatment_effects <- 
   function(sibp.amce,
@@ -521,7 +561,8 @@ sibp.rank <- sibp_rank_runs(sibp.search, X, 30)
 sibp.fit <- sibp.search[["4"]][["1"]][[2]]
 sibp_top_words(sibp.fit, colnames(X), 30, verbose = TRUE)
 sibp.amce <- sibp_amce_temp(sibp.fit, X, Y, G = G)
-sibp_amce_plot(sibp.amce, L = 4)
+sibp.amce.model <- get_amce_model(sibp.fit, X, Y, G = G)
+# sibp_amce_plot(sibp.amce, L = 4)
 
 pdf('./figures/survey_analysis_efficacy_effects.pdf')
 draw_treatment_effects(
