@@ -91,7 +91,7 @@ sibp_amce_temp <-
       L = ci.bounds[, 1],
       U = ci.bounds[, 2]
     )
-    cidf[, -1] <- cidf[, -1] * sibp.fit$sdY
+    cidf[,-1] <- cidf[,-1] * sibp.fit$sdY
     sibp.amce <- cidf
     return(sibp.amce)
   }
@@ -140,19 +140,27 @@ get_amce_model <-
 # Function for formatting treatment effects matrix
 format_treatment_effects <-
   function(sibp.amce,
-           levels,
            treatments) {
-    subset_start <- length(levels) + 1
+    # Supply groups, always same in my case
+    groups <- c("Black Democrat",
+                "White Democrat",
+                "Black Republican",
+                "White Republican")
+    
+    # Subset and label df's coefficients
+    subset_start <- length(groups) + 1
     subset_end <- nrow(sibp.amce)
-    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
+    estimate_df <- sibp.amce[c(subset_start:subset_end),]
     estimate_df$level <-
-      rep(levels, each = nrow(estimate_df) / length(levels))
+      rep(groups, each = nrow(estimate_df) / length(groups))
     estimate_df$treatment <-
       rep(treatments, times = nrow(estimate_df) / length(treatments))
     estimate_df$treatment = factor(
       estimate_df$treatment,
       levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
     )
+    
+    # Reformat estimate df for clear output
     estimate_df <- estimate_df %>%
       select(effect, L, U, level, treatment) %>%
       arrange(treatment) %>%
@@ -161,33 +169,46 @@ format_treatment_effects <-
              effect = round(effect, 2))
     estimate_df <-
       estimate_df[, c("treatment", "level", "effect", "L", "U")]
+    
+    # Print estimate df
     print(estimate_df)
+    
   }
 
 # Function for drawing treatment effects
 draw_treatment_effects <-
   function(sibp.amce,
-           levels,
            treatments,
-           levels_title,
+           groups_title,
            effect_title,
            xlim_l,
            xlim_u,
            ratio) {
-    subset_start <- length(levels) + 1
+    # Supply groups, always same in my case
+    groups <- c("Black Democrat",
+                "White Democrat",
+                "Black Republican",
+                "White Republican")
+    
+    # Subset and label df's coefficients
+    subset_start <- length(groups) + 1
     subset_end <- nrow(sibp.amce)
-    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
+    estimate_df <- sibp.amce[c(subset_start:subset_end),]
     estimate_df$level <-
-      rep(levels, each = nrow(estimate_df) / length(levels))
+      rep(groups, each = nrow(estimate_df) / length(groups))
     estimate_df$treatment <-
       rep(treatments, times = nrow(estimate_df) / length(treatments))
     estimate_df$treatment = factor(
       estimate_df$treatment,
       levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
     )
+    
+    # Filter out Black Republican group due to 
+    # too few observations and too large std. errs.
     estimate_df <- estimate_df %>%
       filter(level != "Black Republican")
     
+    # Plot effects
     estimate_df %>%
       ggplot(., aes(
         x = effect,
@@ -203,7 +224,7 @@ draw_treatment_effects <-
                  color = "black") +
       coord_fixed(ratio = 0.50 * abs(xlim_u)) +
       xlim(xlim_l, xlim_u) +
-      labs(y = levels_title, x = effect_title) +
+      labs(y = groups_title, x = effect_title) +
       theme_bw() +
       theme(
         panel.background = element_blank(),
