@@ -5,15 +5,16 @@ setwd('~/Documents/thesis/data/')
 load('./rdata/survey_analysis_trust.RData')
 source("../src/R/survey/survey_analysis_helper.R")
 
-library(rlang)
 library(data.table)
-library(texteffect)
-library(tidyr)
 library(dplyr)
+library(pwr)
 library(readr)
-library(tm)
-library(textstem)
+library(rlang)
 library(stringr)
+library(texteffect)
+library(textstem)
+library(tidyr)
+library(tm)
 library(tokenizers)
 
 # Load survey data
@@ -361,14 +362,8 @@ sibp.amce.model <- get_amce_model(sibp.fit, X, Y, G = G)
 #pdf('./figures/survey_analysis_trust_effects.pdf')
 draw_treatment_effects(
   sibp.amce = sibp.amce,
-  levels = c(
-    "Black Democrat",
-    "White Democrat",
-    "Black Republican",
-    "White Republican"
-  ),
   treatments = c("Black Pride", "Dangerous Society", "Identity Support"),
-  levels_title = "",
+  groups_title = "",
   effect_title = "Political Trust",
   xlim_l = -1.5,
   xlim_u = 1.5
@@ -377,27 +372,11 @@ draw_treatment_effects(
 
 format_treatment_effects(
   sibp.amce = sibp.amce,
-  levels = c(
-    "Black Democrat",
-    "White Democrat",
-    "Black Republican",
-    "White Republican"
-  ),
   treatments = c("Black Pride", "Dangerous Society", "Identity Support")
 )
 
 # Power analysis
-# Print sample sizes 
-sample_sizes <- G %>% 
-  as.data.frame(G) 
-print(colSums(sample_sizes))
-pwr.f2.test(u = 16, v = 1340 - 16 - 1, f2 = 0.004789/(1-0.004789), sig.level = 0.05)
-# Method for viewing interventions with treatment
-# r <- df_merged_small_dfm %>%
-#   rename(foo_bar = `say`) %>%
-#   filter(foo_bar != 0) %>%
-#   select(foo_bar, AdText) %>%
-#   arrange(desc(foo_bar))
-# View(r)
+get_power_analysis_linear(sibp.amce.model, G)
+# power.anova <- get_power_analysis_anova(sibp.amce, G)
 
-save.image('./rdata/survey_analysis_trust.RData')
+#save.image('./rdata/survey_analysis_trust.RData')

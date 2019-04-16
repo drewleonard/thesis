@@ -240,3 +240,52 @@ draw_treatment_effects <-
       )
     
   }
+
+# Function for calculating power, linear
+get_power_analysis_linear <- 
+  function(amce_model, G) {
+    
+    # Get model summary
+    model_summary <- summary(amce_model)
+    r_squared <- model_summary$r.squared
+    
+    # Convert G to data.frame
+    G <- as.data.frame(G)
+    
+    # Setting power variables
+    u <- 16
+    n.actual <- nrow(G)
+    v.actual <- n.actual - u - 1
+    f2 <- r_squared / (1-r_squared)
+    sig.level <- 0.05
+    power <- 0.8
+    
+    # Calculating power
+    #  u: n coefficients
+    #  v: n error degrees of freedom
+    #     v=n-u-1 
+    #  n: n observations
+    #     n=v+u+1
+    # f2: effect size
+    #     R^2/(1-R^2)
+    
+    # Get necessary observations for detecting null effect
+    power.n <- pwr.f2.test(u = u, f2 = f2, sig.level = sig.level, power = power)
+    estimate.n <- round(power.n$v) + u + 1
+
+    # Get power given my number of observations
+    power.power <- pwr.f2.test(u = u, v = v.actual, f2 = f2, sig.level = sig.level)
+    estimate.power <- power.power$power
+
+    print(paste("Required n:", estimate.n))
+    print(paste("Power with supplied n:", estimate.power))
+  
+  }
+
+# Method for viewing interventions with treatment
+# r <- df_merged_small_dfm %>%
+#   rename(foo_bar = `say`) %>%
+#   filter(foo_bar != 0) %>%
+#   select(foo_bar, AdText) %>%
+#   arrange(desc(foo_bar))
+# View(r)
