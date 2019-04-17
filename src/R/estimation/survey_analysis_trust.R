@@ -357,7 +357,6 @@ sibp.fit <- sibp.search[["4"]][["1"]][[8]]
 sibp_top_words(sibp.fit, colnames(X), 30, verbose = TRUE)
 sibp.amce <- sibp_amce_temp(sibp.fit, X, Y, G = G)
 sibp.amce.model <- get_amce_model(sibp.fit, X, Y, G = G)
-# sibp_amce_plot(sibp.amce, L = 4)
 
 #pdf('./figures/survey_analysis_trust_effects.pdf')
 draw_treatment_effects(
@@ -377,6 +376,5 @@ format_treatment_effects(
 
 # Power analysis
 get_power_analysis_linear(sibp.amce.model, G)
-# power.anova <- get_power_analysis_anova(sibp.amce, G)
 
 #save.image('./rdata/survey_analysis_trust.RData')

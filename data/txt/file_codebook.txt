@@ -1,0 +1,7 @@
+/src/R
+ad_statistics.R => Calculating summary statistics for advertisements
+ad_model.R => Topic modeling advertisement texts
+interest_model.R => Topic modeling advertisement targeted interests
+content_model.R => Modeling targeted interests' probable words (content)
+performance_statistics.R => Measuring performance of topic models
+timeseries.R => Time series trends

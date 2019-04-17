@@ -2,6 +2,7 @@ rm(list = ls())
 setwd('~/Documents/thesis/data/')
 
 load('./rdata/survey_analysis_race.RData')
+source("../src/R/survey/survey_analysis_helper.R")
 
 library(rlang)
 library(data.table)
@@ -13,173 +14,6 @@ library(tm)
 library(textstem)
 library(stringr)
 library(tokenizers)
-
-# Function for getting image n from tag
-get_image_n <- function(image_tag) {
-  as.numeric(str_extract_all(image_tag, "[0-9]+")[[1]])
-}
-
-# Function for removing punctuation besides hashtag
-remove_punctiation_helper <- function(x) {
-  x <- gsub("#", "\002", x)
-  x <- gsub("_", "\003", x)
-  x <- gsub("[[:punct:]]+", "", x)
-  x <- gsub("\002", "#", x, fixed = TRUE)
-  gsub("\003", "_", x, fixed = TRUE)
-}
-
-remove_punctiation <-
-  function (x, preserve_intra_word_dashes = FALSE) {
-    if (preserve_intra_word_dashes) {
-      x <- gsub("(\\w)-(\\w)", "\\1\001\\2", x)
-      x <- remove_punctiation_helper(x)
-      gsub("\001", "-", x, fixed = TRUE)
-    } else {
-      remove_punctiation_helper(x)
-    }
-  }
-
-# Function to collapse hashtags to lemmas
-collapse_punctuation <- function (x) {
-  x <- gsub("# ", "#", x, fixed = TRUE)
-  gsub(" _ ", "_", x, fixed = TRUE)
-}
-
-# Function to remove common terms
-remove_common_terms <- function (x, pct) {
-  x[, slam::col_sums(x) / nrow(x) <= pct]
-}
-
-sibp_amce_temp <- function(sibp.fit,
-                           X,
-                           Y,
-                           G,
-                           seed = 0,
-                           level = 0.05,
-                           thresh = 0.9) {
-  # Want it to be the case that G %*% beta selects the correct beta
-  if (is.null(G)) {
-    G <- matrix(1, nrow = nrow(X), ncol = 1)
-  }
-  
-  set.seed(seed)
-  
-  G.test <- G[sibp.fit$test.ind, , drop = FALSE]
-  Z.test <- infer_Z(sibp.fit, X)
-  Y.test <- (Y[sibp.fit$test.ind] - sibp.fit$meanY) / sibp.fit$sdY
-  
-  Z.hard <-
-    apply(Z.test, 2, function(z)
-      sapply(z, function(zi)
-        ifelse(zi >= 0.9, 1, 0)))
-  
-  L <- sibp.fit$L
-  K <- sibp.fit$K
-  
-  if (L == 1) {
-    fit <- lm(Y.test ~ Z.hard)
-  }
-  else{
-    rhsmat <- c()
-    for (l in 1:L) {
-      rhsmat <- cbind(rhsmat, Z.hard * G.test[, l])
-    }
-    fit <- lm(Y.test ~ -1 + as.matrix(G.test) + rhsmat)
-  }
-  ci.bounds <-
-    cbind(
-      coef(fit) + qnorm(level / 2) * summary(fit)$coefficients[, 2],
-      coef(fit) + qnorm(1 - level / 2) * summary(fit)$coefficients[, 2]
-    )
-  
-  cidf <- data.frame(
-    x = 1:((K + 1) * L),
-    effect = coef(fit),
-    L = ci.bounds[, 1],
-    U = ci.bounds[, 2]
-  )
-  cidf[,-1] <- cidf[,-1] * sibp.fit$sdY
-  sibp.amce <- cidf
-  return(sibp.amce)
-}
-
-# Function for formatting treatment effects matrix
-format_treatment_effects <- 
-  function(sibp.amce,
-           levels,
-           treatments) {
-    subset_start <- length(levels) + 1
-    subset_end <- nrow(sibp.amce)
-    estimate_df <- sibp.amce[c(subset_start:subset_end),]
-    estimate_df$level <-
-      rep(levels, each = nrow(estimate_df) / length(levels))
-    estimate_df$treatment <-
-      rep(treatments, times = nrow(estimate_df) / length(treatments))
-    estimate_df <- estimate_df %>%
-      select(effect, L, U, level, treatment) %>%
-      arrange(treatment) %>%
-      mutate(L = round(L,2),
-             U = round(U,2),
-             effect = round(effect,2))
-    estimate_df <- estimate_df[, c("treatment", "level", "effect", "L", "U")]
-    print(estimate_df)
-  }
-
-# Function for drawing treatment effects
-draw_treatment_effects <-
-  function(sibp.amce,
-           levels,
-           treatments,
-           levels_title,
-           effect_title,
-           xlim_l,
-           xlim_u,
-           ratio) {
-    subset_start <- length(levels) + 1
-    subset_end <- nrow(sibp.amce)
-    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
-    estimate_df$level <-
-      rep(levels, each = nrow(estimate_df) / length(levels))
-    estimate_df$treatment <-
-      rep(treatments, times = nrow(estimate_df) / length(treatments))
-    estimate_df$treatment = factor(
-      estimate_df$treatment,
-      levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
-    )
-    estimate_df <- estimate_df %>% 
-      filter(level != "Black Republican")
-    
-    estimate_df %>%
-      ggplot(., aes(
-        x = effect,
-        y = level,
-        xmin = L,
-        xmax = U
-      )) +
-      geom_point() +
-      geom_errorbarh(height = .1) +
-      facet_grid(. ~ treatment) +
-      geom_vline(xintercept = 0,
-                 linetype = "solid",
-                 color = "black") +
-      coord_fixed(ratio = 0.50 * abs(xlim_u)) +
-      xlim(xlim_l, xlim_u) +
-      labs(y = levels_title, x = effect_title) +
-      theme_bw() +
-      theme(
-        panel.background = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        strip.background = element_rect(color = "grey"),
-        axis.line = element_line(color = "grey", size = 0.5),
-        panel.border = element_rect(
-          color = "grey",
-          fill = NA,
-          size = 0.5
-        )
-      )
-    
-  }
 
 # Load survey data
 # 3259 responses
@@ -519,42 +353,25 @@ sibp.rank <- sibp_rank_runs(sibp.search, X, 30)
 sibp.fit <- sibp.search[["3"]][["0.75"]][[10]]
 sibp_top_words(sibp.fit, colnames(X), 30, verbose = TRUE)
 sibp.amce <- sibp_amce_temp(sibp.fit, X, Y, G = G)
-# sibp_amce_plot(sibp.amce, L = 4)
+sibp.amce.model <- get_amce_model(sibp.fit, X, Y, G = G)
 
-pdf('./figures/survey_analysis_race_effects.pdf')
+#pdf('./figures/survey_analysis_race_effects.pdf')
 draw_treatment_effects(
   sibp.amce = sibp.amce,
-  levels = c(
-    "Black Democrat",
-    "White Democrat", 
-    "Black Republican",
-    "White Republican"
-  ),
   treatments = c("Identity Support", "Dangerous Society", "Black Pride"),
-  levels_title = "",
+  groups_title = "",
   effect_title = "Racial Affective Polarization",
   xlim_l = -50,
   xlim_u = 50
 )
-dev.off()
+#dev.off()
 
 format_treatment_effects(
   sibp.amce = sibp.amce,
-  levels = c(
-    "Black Democrat",
-    "White Democrat",
-    "Black Republican",
-    "White Republican"
-  ),
   treatments = c("Identity Support", "Dangerous Society", "Black Pride")
 )
 
-# Method for viewing interventions with treatment
-r <- df_merged_small_dfm %>%
-  rename(foo_bar = `#african`) %>%
-  filter(foo_bar != 0) %>%
-  select(foo_bar, AdText) %>%
-  arrange(desc(foo_bar))
-View(r)
+# Power analysis
+get_power_analysis_linear(sibp.amce.model, G)
 
-save.image('./rdata/survey_analysis_race.RData')
+#save.image('./rdata/survey_analysis_race.RData')

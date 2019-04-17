@@ -91,7 +91,7 @@ sibp_amce_temp <-
       L = ci.bounds[, 1],
       U = ci.bounds[, 2]
     )
-    cidf[,-1] <- cidf[,-1] * sibp.fit$sdY
+    cidf[, -1] <- cidf[, -1] * sibp.fit$sdY
     sibp.amce <- cidf
     return(sibp.amce)
   }
@@ -150,7 +150,7 @@ format_treatment_effects <-
     # Subset and label df's coefficients
     subset_start <- length(groups) + 1
     subset_end <- nrow(sibp.amce)
-    estimate_df <- sibp.amce[c(subset_start:subset_end),]
+    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
     estimate_df$level <-
       rep(groups, each = nrow(estimate_df) / length(groups))
     estimate_df$treatment <-
@@ -193,7 +193,7 @@ draw_treatment_effects <-
     # Subset and label df's coefficients
     subset_start <- length(groups) + 1
     subset_end <- nrow(sibp.amce)
-    estimate_df <- sibp.amce[c(subset_start:subset_end),]
+    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
     estimate_df$level <-
       rep(groups, each = nrow(estimate_df) / length(groups))
     estimate_df$treatment <-
@@ -203,7 +203,7 @@ draw_treatment_effects <-
       levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
     )
     
-    # Filter out Black Republican group due to 
+    # Filter out Black Republican group due to
     # too few observations and too large std. errs.
     estimate_df <- estimate_df %>%
       filter(level != "Black Republican")
@@ -242,8 +242,16 @@ draw_treatment_effects <-
   }
 
 # Function for calculating power, linear
-get_power_analysis_linear <- 
+get_power_analysis_linear <-
   function(amce_model, G) {
+    # Calculating power
+    #  u: n coefficients
+    #  v: n error degrees of freedom
+    #     v=n-u-1
+    #  n: n observations
+    #     n=v+u+1
+    # f2: effect size
+    #     R^2/(1-R^2)
     
     # Get model summary
     model_summary <- summary(amce_model)
@@ -256,30 +264,33 @@ get_power_analysis_linear <-
     u <- 16
     n.actual <- nrow(G)
     v.actual <- n.actual - u - 1
-    f2 <- r_squared / (1-r_squared)
+    f2 <- r_squared / (1 - r_squared)
     sig.level <- 0.05
     power <- 0.8
     
-    # Calculating power
-    #  u: n coefficients
-    #  v: n error degrees of freedom
-    #     v=n-u-1 
-    #  n: n observations
-    #     n=v+u+1
-    # f2: effect size
-    #     R^2/(1-R^2)
-    
     # Get necessary observations for detecting null effect
-    power.n <- pwr.f2.test(u = u, f2 = f2, sig.level = sig.level, power = power)
+    power.n <-
+      pwr.f2.test(
+        u = u,
+        f2 = f2,
+        sig.level = sig.level,
+        power = power
+      )
     estimate.n <- round(power.n$v) + u + 1
-
+    
     # Get power given my number of observations
-    power.power <- pwr.f2.test(u = u, v = v.actual, f2 = f2, sig.level = sig.level)
+    power.power <-
+      pwr.f2.test(
+        u = u,
+        v = v.actual,
+        f2 = f2,
+        sig.level = sig.level
+      )
     estimate.power <- power.power$power
-
+    
     print(paste("Required n:", estimate.n))
     print(paste("Power with supplied n:", estimate.power))
-  
+    
   }
 
 # Method for viewing interventions with treatment
