@@ -37,6 +37,9 @@ full <- read.csv("csv/df_interests_spline_age_49.csv")
 stm <-
   readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
+# Load fonts
+extrafont::loadfonts()
+
 # Set topic names
 topicNames <- c(
   "Race Tensions",
@@ -91,30 +94,57 @@ topicNames <- c(
 )
 
 # PLOT _
-# Plot interest effects
-# prepInterests <- estimateEffect(
-#   formula = 1:49 ~ Interests,
-#   stmobj = stm,
-#   metadata = out$meta,
-#   uncertainty = "Global"
-# )
-# 
-# topicNamesDf <- data.frame(
-#   topicnames = topicNames,
-#   TopicNumber = 1:49,
-#   TopicProportions = colMeans(stm$theta)
-# )
-# 
-# interestsAllUnordered <- plot(
-#   prepInterests,
-#   covariate = "Interests",
-#   topics = c(1:49),
-#   model = stm,
-#   method = "difference",
-#   cov.value1 = "Right Wing",
-#   cov.value2 = "Left Wing",
-#   xlab = "Left wing ... Right wing",
-#   main = ""
-# )
-# rank <- order(unlist(interestsAllUnordered$means))
-# topicNamesDf <- topicNamesDf[rank,]
+# Plot topics relative to interests
+# (Heatmap)
+interestTopicDf <- full %>%
+  select(c("Interests", "primary_topic")) %>%
+  filter(Interests != "mixed" & Interests != "Music" &
+           Interests != "unavailable" & primary_topic != "Mixed" & primary_topic != "Music Streaming")
+
+interestTopicMatrix <-
+  t(as.matrix(table(droplevels(interestTopicDf))))
+
+d <-
+  ifelse(log(interestTopicMatrix) < 0, 0, log(interestTopicMatrix))
+
+dd.row <- as.dendrogram(hclust(dist(d)))
+row.ord <- order.dendrogram(dd.row)
+dd.col <- as.dendrogram(hclust(dist(t(d))))
+col.ord <- order.dendrogram(dd.col)
+
+lattice.options(axis.padding = list(factor = 0.5))
+
+#pdf("~/Documents/thesis/data/figures/analysis/topic_interest_heatmap.pdf")
+levelplot(
+  d[row.ord, col.ord],
+  aspect = "fill",
+  xlab = "Discussed Topics",
+  ylab = "Targeted Interests",
+  pretty = TRUE,
+  drop.unused.levels = TRUE,
+  scales = list(x = list(rot = 45), tck = c(0, 0)),
+  colorkey = list(space = "right"),
+  par.settings = custom.theme(region = plasma(10)),
+  border = "black",
+  border.lwd = .6,
+  xaxt = "n",
+  yaxt = "n",
+  legend = list(
+    left = list(
+      fun = dendrogramGrob,
+      args =
+        list(
+          x = dd.col,
+          ord = col.ord,
+          side = "right",
+          size = 0
+        )
+    ),
+    top = list(fun = dendrogramGrob, args =
+                 list(
+                   x = dd.row,
+                   side = "top", size = 0
+                 ))
+  )
+)
+#dev.off()

@@ -40,11 +40,11 @@ stm <-
 # Load fonts
 extrafont::loadfonts()
 
-# PLOT _
-# Plot grouped topics' clicks, impressions, spend
-topic_metrics <- full %>%
+# Plot grouped interests' circulation (count and spend) and reach (clicks and impressions)
+interests_metrics <- full %>%
   drop_na(primary_topic) %>%
-  group_by(primary_topic) %>%
+  filter(Interests != "unavailable") %>%
+  group_by(Interests) %>%
   summarise(
     sum_count = n(),
     sum_clicks = sum(Clicks),
@@ -57,31 +57,27 @@ topic_metrics <- full %>%
     pct_impressions = sum_impressions / sum(sum_impressions),
     pct_spend = sum_spend / sum(sum_spend)
   ) %>%
-  select(primary_topic,
-         pct_count,
-         pct_clicks,
-         pct_impressions,
-         pct_spend)
+  select(Interests, pct_count, pct_clicks, pct_impressions, pct_spend)
 
-pdf("~/Documents/thesis/data/figures/topic_metrics_impressions_clicks.pdf",
-    family = "CM Roman")
-topic_metrics %>%
-  filter(primary_topic != "Mixed" &
-           primary_topic != "Music Streaming") %>%
-  ggplot(aes(y = reorder(factor(primary_topic), pct_clicks))) +
-  geom_point(aes(x = pct_impressions, color = "impressions")) +
-  geom_point(aes(x = pct_clicks, color = "clicks")) +
+plot <- interests_metrics %>%
+  ggplot(aes(y = reorder(factor(Interests), pct_count))) +
+  geom_point(aes(x = pct_spend, color = "spend")) +
+  geom_point(aes(x = pct_count, color = "count")) +
   scale_colour_manual(
     name = "",
-    values = c("clicks" = "#2196F3", "impressions" = "#90CAF9"),
-    labels = c("Clicks", "Impressions")
+    values = c("count" = "#F44336", "spend" = "#EF9A9A"),
+    labels = c("Count", "Spend")
   ) +
   labs(title = "", x = "", y = "") +
   theme(
     legend.position = "top",
     legend.justification = "center",
     legend.direction = "horizontal",
-    axis.ticks = element_blank()
+    axis.ticks = element_blank(),
+    text=element_text(family="CM Roman")
   ) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 1))
-dev.off()
+
+setwd('~/Documents/thesis/data/figures/analysis/')
+ggsave("interests_circulation.pdf", plot)
+embed_fonts("interests_circulation.pdf")
