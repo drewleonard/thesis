@@ -37,9 +37,6 @@ full <- read.csv("csv/df_interests_spline_age_49.csv")
 stm <-
   readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
-# Load fonts
-extrafont::loadfonts()
-
 prepAgeQuant <- estimateEffect(
   formula = 1:49 ~ AgeAverage,
   stmobj = stm,
@@ -47,7 +44,7 @@ prepAgeQuant <- estimateEffect(
   uncertainty = "Global"
 )
 
-pdf('~/Documents/thesis/data/figures/analysis/effects_age.pdf')
+pdf('~/Documents/thesis/data/figures/analysis/extra/effects_age.pdf')
 plot(
   prepAgeQuant,
   "AgeAverage",
@@ -60,7 +57,6 @@ plot(
   labeltype = "custom",
   custom.labels = c("Police Brutality", "Race Tensions")
 )
-
 legend(
   x = 41,
   y = -0.04,

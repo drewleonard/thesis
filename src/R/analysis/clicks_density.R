@@ -57,7 +57,7 @@ clicks_p <- metric_df %>%
   ) +
   xlim(0, quantile(full$Clicks, 0.95)) +
   ylim(0, .55) +
-  ylab("") +
+  ylab("Proportion") +
   xlab("Clicks")
 
 clicks_p_sub <- full %>%

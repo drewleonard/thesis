@@ -41,7 +41,7 @@ stm <-
 # (Heatmap)
 accountGroupTopicDf <- full %>%
   select(c("AccountGroup", "primary_topic")) %>%
-  filter(AccountGroup != "unavailable" & primary_topic != "Mixed")
+  filter(AccountGroup != "unavailable" & primary_topic != "Mixed" & primary_topic != "Music Streaming")
 
 accountGroupTopicMatrix <-
   t(as.matrix(table(droplevels(
@@ -60,12 +60,12 @@ col2.ord <- order.dendrogram(dd2.col)
 
 lattice.options(axis.padding = list(factor = 0.5))
 
-pdf('~/Documents/thesis/data/figures/analysis/topic_account_heatmap.pdf')
+pdf('~/Documents/thesis/data/figures/analysis/extra/topic_account_heatmap.pdf', width = 10, height = 15)
 levelplot(
   d2[row2.ord, col2.ord],
   aspect = "fill",
   xlab = "Discussed Topics",
-  ylab = "Account Groups",
+  ylab = "Accounts",
   pretty = TRUE,
   drop.unused.levels = TRUE,
   scales = list(x = list(rot = 45), tck = c(0, 0)),

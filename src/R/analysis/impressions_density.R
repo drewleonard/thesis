@@ -57,7 +57,7 @@ impressions_p <- metric_df %>%
   ) +
   xlim(0, quantile(full$Impressions, 0.95)) +
   ylim(0, .55) +
-  ylab("") +
+  ylab("Proportion") +
   xlab("Impressions")
 
 impressions_p_sub <- full %>%

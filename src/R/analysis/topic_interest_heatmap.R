@@ -114,7 +114,7 @@ col.ord <- order.dendrogram(dd.col)
 
 lattice.options(axis.padding = list(factor = 0.5))
 
-#pdf("~/Documents/thesis/data/figures/analysis/topic_interest_heatmap.pdf")
+pdf("~/Documents/thesis/data/figures/analysis/topic_interest_heatmap.pdf")
 levelplot(
   d[row.ord, col.ord],
   aspect = "fill",
@@ -147,4 +147,4 @@ levelplot(
                  ))
   )
 )
-#dev.off()
+dev.off()

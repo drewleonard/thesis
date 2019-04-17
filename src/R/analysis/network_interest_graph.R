@@ -137,7 +137,6 @@ qgraph(
   legend = TRUE,
   legend.mode = "names",
   normalize = TRUE,
-  # XKCD = TRUE, # the most important argument
   theme = "Borkulo"
 )
 

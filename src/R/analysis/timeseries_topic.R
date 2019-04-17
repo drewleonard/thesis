@@ -40,7 +40,8 @@ stm <-
 # Load fonts
 extrafont::loadfonts()
 
-plot <- full %>%
+pdf('~/Documents/thesis/data/figures/analysis/extra/timeseries_topic.pdf')
+full %>%
   drop_na(primary_topic) %>%
   filter(primary_topic != "Mixed" &
            primary_topic != "Music Streaming") %>%
@@ -52,11 +53,5 @@ plot <- full %>%
   geom_density_ridges2(aes(alpha = 0.5)) +
   scale_y_discrete(expand = c(0.01, 0)) +
   scale_alpha(guide = 'none') +
-  theme(text=element_text(family="CM Roman")) +
   labs(title = "", x = "", y = "")  
-
-setwd('~/Documents/thesis/data/figures/analysis/')
-ggsave("topics_date.pdf", plot)
-embed_fonts("topics_date.pdf")
-
-# dev.off()
+dev.off()

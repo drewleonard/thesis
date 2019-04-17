@@ -45,7 +45,7 @@ metric_df <- full %>%
   filter(Clicks < quantile(Clicks, 0.98) & Clicks > 0) %>%
   filter(AdSpend < quantile(AdSpend, 0.98) & AdSpend > 0)
 
-pdf("~/Documents/thesis/data/figures/spend_density.pdf")
+pdf("~/Documents/thesis/data/figures/analysis/spend_density.pdf")
 spend_p <- metric_df %>%
   ggplot() +
   geom_histogram(
@@ -57,7 +57,7 @@ spend_p <- metric_df %>%
   ) +
   xlim(0, quantile(full$AdSpend, 0.95)) +
   ylim(0, 0.55) +
-  ylab("") +
+  ylab("Proportion") +
   xlab("Spend (RUB)")
 
 spend_p_sub <- full %>%

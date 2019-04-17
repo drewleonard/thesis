@@ -37,13 +37,10 @@ full <- read.csv("csv/df_interests_spline_age_49.csv")
 stm <-
   readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
-# Load fonts
-extrafont::loadfonts()
-
 # Plot grouped interests' circulation (count and spend) and reach (clicks and impressions)
 interests_metrics <- full %>%
   drop_na(primary_topic) %>%
-  filter(Interests != "unavailable") %>%
+  filter(Interests != "unavailable" & Interests != "Music" & Interests != "mixed") %>%
   group_by(Interests) %>%
   summarise(
     sum_count = n(),
@@ -59,10 +56,11 @@ interests_metrics <- full %>%
   ) %>%
   select(Interests, pct_count, pct_clicks, pct_impressions, pct_spend)
 
-plot <- interests_metrics %>%
+pdf('~/Documents/thesis/data/figures/analysis/interest_circulation.pdf')
+interests_metrics %>%
   ggplot(aes(y = reorder(factor(Interests), pct_count))) +
-  geom_point(aes(x = pct_spend, color = "spend")) +
-  geom_point(aes(x = pct_count, color = "count")) +
+  geom_point(aes(x = pct_spend, color = "spend"), size = 2) +
+  geom_point(aes(x = pct_count, color = "count"), size = 2) +
   scale_colour_manual(
     name = "",
     values = c("count" = "#F44336", "spend" = "#EF9A9A"),
@@ -70,14 +68,12 @@ plot <- interests_metrics %>%
   ) +
   labs(title = "", x = "", y = "") +
   theme(
-    legend.position = "top",
-    legend.justification = "center",
-    legend.direction = "horizontal",
+    legend.position = c(0.65, 0.15),
     axis.ticks = element_blank(),
-    text=element_text(family="CM Roman")
+    legend.background = element_rect(size = 0.5, 
+                                     linetype="solid", 
+                                     colour ="black"),
+    legend.title = element_blank()
   ) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 1))
-
-setwd('~/Documents/thesis/data/figures/analysis/')
-ggsave("interests_circulation.pdf", plot)
-embed_fonts("interests_circulation.pdf")
+dev.off()

@@ -9,7 +9,7 @@ searchk_results <- readRDS('rds/searchkresults.RDS')
 searchk_df <- searchk_results$results
 
 # Exlcusivity
-pdf('~/Documents/thesis/data/figures/searchk_exclusivity.pdf')
+pdf('~/Documents/thesis/data/figures/analysis/searchk_exclusivity.pdf')
 searchk_df %>% 
   ggplot() +
   geom_line(aes(x = K, y = exclus)) +
@@ -22,7 +22,7 @@ dev.off()
 
 
 # Heldout likelihood
-pdf('~/Documents/thesis/data/figures/searchk_heldout.pdf')
+pdf('~/Documents/thesis/data/figures/analysis/extra/searchk_heldout.pdf')
 searchk_df %>% 
   ggplot() +
   geom_line(aes(x = K, y = heldout)) +
@@ -34,7 +34,7 @@ searchk_df %>%
 dev.off()
   
 # Residual
-pdf('~/Documents/thesis/data/figures/searchk_residual.pdf')
+pdf('~/Documents/thesis/data/figures/analysis/searchk_residual.pdf')
 searchk_df %>% 
   ggplot() +
   geom_line(aes(x = K, y = residual)) +
@@ -46,7 +46,7 @@ searchk_df %>%
 dev.off()
 
 # Semantic coherence
-pdf('~/Documents/thesis/data/figures/searchk_coherence.pdf')
+pdf('~/Documents/thesis/data/figures/analysis/searchk_coherence.pdf')
 searchk_df %>% 
   ggplot() +
     geom_line(aes(x = K, y = semcoh)) +
@@ -58,7 +58,7 @@ searchk_df %>%
 dev.off()
 
 # Lower bound
-pdf('~/Documents/thesis/data/figures/searchk_bound.pdf')
+pdf('~/Documents/thesis/data/figures/analysis/extra/searchk_bound.pdf')
 searchk_df %>% 
   ggplot() +
   geom_line(aes(x = K, y = lbound)) +

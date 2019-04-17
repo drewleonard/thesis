@@ -39,9 +39,6 @@ full <- read.csv("csv/df_interests_spline_age_49.csv")
 stm <-
   readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
-# Load fonts
-extrafont::loadfonts()
-
 # Set topic names
 topicNames <- c(
   "Race Tensions",

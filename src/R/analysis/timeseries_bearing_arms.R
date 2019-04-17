@@ -44,7 +44,8 @@ stm_cluster <- readRDS('./rds/model_content_cluster.RDS')
 prep_cluster <- estimateEffect(c(1:49) ~ s(CreationDateInteger,5) * AccountGroupCluster, stm_cluster,
                        metadata = out$meta, uncertainty = "None")
 
-pdf('~/Documents/thesis/data/figures/timeseries_bearing_arms.pdf',width=10,height=5)
+pdf('~/Documents/thesis/data/figures/analysis/imeseries_bearing_arms.pdf',width=10,height=5)
+
 plot(prep_cluster,
      topics = c(17,21,46),
      covariate = "CreationDateInteger",
@@ -55,12 +56,15 @@ plot(prep_cluster,
      text.cex = 1.25,
      method = "continuous",
      moderator = "AccountGroupCluster",
+     linecol = c("blue","red","green4"),
      labeltype = "custom",
      custom.labels = c('Police Brutality', 'Bearing Arms', 'Black Empowerment'),
      moderator.value = 'cluster_1')
+
 axis(1, at=c(20150000,20155000,20160000,20165000,20170000), 
      labels = c('01/15','06/15','01/16','06/16','01/17'),
      tck = -0.00)
 axis(2, at=c(-0.5,0.0,0.2,0.4,0.6,0.8), 
      tck = -0.00)
+
 dev.off()

@@ -63,12 +63,13 @@ topic_metrics <- full %>%
          pct_impressions,
          pct_spend)
 
-plot <- topic_metrics %>%
+pdf('~/Documents/thesis/data/figures/analysis/topic_reach.pdf')
+topic_metrics %>%
   filter(primary_topic != "Mixed" &
            primary_topic != "Music Streaming") %>%
   ggplot(aes(y = reorder(factor(primary_topic), pct_clicks))) +
-  geom_point(aes(x = pct_impressions, color = "impressions")) +
-  geom_point(aes(x = pct_clicks, color = "clicks")) +
+  geom_point(aes(x = pct_impressions, color = "impressions"), size = 2) +
+  geom_point(aes(x = pct_clicks, color = "clicks"), size = 2) +
   scale_colour_manual(
     name = "",
     values = c("clicks" = "#2196F3", "impressions" = "#90CAF9"),
@@ -76,13 +77,12 @@ plot <- topic_metrics %>%
   ) +
   labs(title = "", x = "", y = "") +
   theme(
-    legend.position = "top",
-    legend.justification = "center",
-    legend.direction = "horizontal",
-    axis.ticks = element_blank()
+    legend.position = c(0.65, 0.15),
+    axis.ticks = element_blank(),
+    legend.background = element_rect(size = 0.5, 
+                                     linetype="solid", 
+                                     colour ="black"),
+    legend.title = element_blank()
   ) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 1))
-
-setwd('~/Documents/thesis/data/figures/analysis/')
-ggsave("topic_reach.pdf", plot)
-embed_fonts("topic_reach.pdf")
+dev.off()
