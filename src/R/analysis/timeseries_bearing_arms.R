@@ -39,18 +39,6 @@ topicNames <- c(
   "Black Empowerment"
 )
 
-# Density plot, all topics
-pdf("~/Documents/thesis/data/figures/topics_date.pdf")
-full %>%
-  drop_na(primary_topic) %>%
-  mutate(primary_topic = factor(primary_topic, levels=rev(levels(primary_topic)))) %>% 
-  ggplot(aes(x = as.Date(CreationDateFormatted, "%Y-%m-%d"), y = primary_topic)) +
-  geom_density_ridges2(aes(alpha = 0.95)) +
-  scale_y_discrete(expand = c(0.01, 0)) +
-  labs(title = "", x = "", y = "") + 
-  theme(legend.position="none") +
-dev.off()
-
 # Estimate effects topic-wise
 stm_cluster <- readRDS('./rds/model_content_cluster.RDS')
 prep_cluster <- estimateEffect(c(1:49) ~ s(CreationDateInteger,5) * AccountGroupCluster, stm_cluster,

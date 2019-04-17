@@ -19,27 +19,6 @@ out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
 full <- read.csv("csv/df_interests_spline_age_49.csv")
 stm <- readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
 
-# Set topic names
-topicNames <- c(
-  "Race Tensions", "Black Empowerment", "Black Empowerment",
-  "Black Empowerment", "Incarceration", "Communal Support",
-  "Race Tensions", "Race Tensions", "Mixed",
-  "Islam in America", "Race Tensions", "Black Empowerment",
-  "Black Empowerment", "Mixed", "Mixed",
-  "Police Brutality", "Police Brutality", "Race Tensions",
-  "Police Brutality", "Patriotism", "Bearing Arms",
-  "Social Justice", "Mixed", "Mixed",
-  "Music Streaming", "Patriotism", "Black Empowerment",
-  "Black Empowerment", "Race Tensions", "Mixed",
-  "Social Justice", "Black Empowerment", "Black Empowerment",
-  "National Security", "Police Brutality", "Race Tensions",
-  "Election", "Patriotism", "Black Empowerment",
-  "Social Justice", "Minorities", "Race Tensions",
-  "Police Brutality", "Patriotism", "Race Tensions",
-  "Black Empowerment", "Black Empowerment", "Minorities",
-  "Black Empowerment"
-)
-
 edges <- read.csv("csv/group_to_group_topic.csv")
 nodes <- read.csv("csv/group_node_topic.csv")
 
@@ -80,7 +59,7 @@ qgraph(cormatrix,
        labels = nums,
        vsize = group_sizes$rank,
        filetype = "pdf",
-       filename = "~/Documents/coolplottopic2",
+       filename = "~/Documents/thesis/data/figures/analysis/network_topic_graph.pdf",
        cut = .25,
        minimum = 0.1,
        width = 17.5,
