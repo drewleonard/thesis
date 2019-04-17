@@ -2,117 +2,96 @@ rm(list = ls())
 setwd("~/Documents/thesis/data/")
 
 # Load packages
-library(stm)
-library(tidyverse)
-library(scales)
-library(lubridate)
-library(forestplot)
-library(ggridges)
-library(formatR)
-library(cowplot)
+library(ComplexHeatmap)
 library(RColorBrewer)
-library(viridis)
+library(cowplot)
 library(dendsort)
-library(reshape2)
+library(dendsort)
+library(extrafont)
+library(forestplot)
+library(formatR)
+library(ggrepel)
+library(ggridges)
+library(gplots)
 library(lattice)
 library(latticeExtra)
-library(ggrepel)
+library(lubridate)
 library(qgraph)
+library(reshape2)
+library(scales)
+library(stm)
 library(styler)
-library(gplots)
-library(ComplexHeatmap)
-library(dendsort)
+library(tidyverse)
+library(viridis)
 
 # Read data
 fb <- read.csv("csv/fb_gold.csv")
 
 # Process data
 processed <- textProcessor(documents = fb$AdText, metadata = fb)
-out <- prepDocuments(processed$documents, processed$vocab, processed$meta)
+out <-
+  prepDocuments(processed$documents, processed$vocab, processed$meta)
 
 # Load full, stm
 full <- read.csv("csv/df_interests_spline_age_49.csv")
-stm <- readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
+stm <-
+  readRDS("~/Documents/thesis/data/rds/model_interests_spline_age_49.RDS")
+
+# Load fonts
+extrafont::loadfonts()
 
 # Set topic names
 topicNames <- c(
-  "Race Tensions", "Black Empowerment", "Black Empowerment",
-  "Black Empowerment", "Incarceration", "Communal Support",
-  "Race Tensions", "Race Tensions", "Mixed",
-  "Islam in America", "Race Tensions", "Black Empowerment",
-  "Black Empowerment", "Mixed", "Mixed",
-  "Police Brutality", "Police Brutality", "Race Tensions",
-  "Police Brutality", "Patriotism", "Bearing Arms",
-  "Social Justice", "Mixed", "Mixed",
-  "Music Streaming", "Patriotism", "Black Empowerment",
-  "Black Empowerment", "Race Tensions", "Mixed",
-  "Social Justice", "Black Empowerment", "Black Empowerment",
-  "National Security", "Police Brutality", "Race Tensions",
-  "Election", "Patriotism", "Black Empowerment",
-  "Social Justice", "Minorities", "Race Tensions",
-  "Police Brutality", "Patriotism", "Race Tensions",
-  "Black Empowerment", "Black Empowerment", "Minorities",
+  "Race Tensions",
+  "Black Empowerment",
+  "Black Empowerment",
+  "Black Empowerment",
+  "Incarceration",
+  "Communal Support",
+  "Race Tensions",
+  "Race Tensions",
+  "Mixed",
+  "Islam in America",
+  "Race Tensions",
+  "Black Empowerment",
+  "Black Empowerment",
+  "Mixed",
+  "Mixed",
+  "Police Brutality",
+  "Police Brutality",
+  "Race Tensions",
+  "Police Brutality",
+  "Patriotism",
+  "Bearing Arms",
+  "Social Justice",
+  "Mixed",
+  "Mixed",
+  "Music Streaming",
+  "Patriotism",
+  "Black Empowerment",
+  "Black Empowerment",
+  "Race Tensions",
+  "Mixed",
+  "Social Justice",
+  "Black Empowerment",
+  "Black Empowerment",
+  "National Security",
+  "Police Brutality",
+  "Race Tensions",
+  "Election",
+  "Patriotism",
+  "Black Empowerment",
+  "Social Justice",
+  "Minorities",
+  "Race Tensions",
+  "Police Brutality",
+  "Patriotism",
+  "Race Tensions",
+  "Black Empowerment",
+  "Black Empowerment",
+  "Minorities",
   "Black Empowerment"
 )
-
-# PLOT _
-# Plot grouped topics' clicks, impressions, spend
-topic_metrics <- full %>%
-  drop_na(primary_topic) %>%
-  group_by(primary_topic) %>%
-  summarise(
-    sum_count = n(),
-    sum_clicks = sum(Clicks),
-    sum_impressions = sum(Impressions),
-    sum_spend = sum(AdSpend)
-  ) %>%
-  mutate(
-    pct_count = sum_count / sum(sum_count),
-    pct_clicks = sum_clicks / sum(sum_clicks),
-    pct_impressions = sum_impressions / sum(sum_impressions),
-    pct_spend = sum_spend / sum(sum_spend)
-  ) %>%
-  select(primary_topic, pct_count, pct_clicks, pct_impressions, pct_spend)
-
-pdf("~/Documents/thesis/data/figures/topic_metrics_spend_count.pdf")
-topic_metrics %>%
-  ggplot(aes(y = reorder(factor(primary_topic), pct_count))) +
-  geom_point(aes(x = pct_spend, color = "spend")) +
-  geom_point(aes(x = pct_count, color = "count")) +
-  scale_colour_manual(
-    name = "",
-    values = c("count" = "#F44336", "spend" = "#EF9A9A"),
-    labels = c("Count", "Spend")
-  ) +
-  labs(title = "", x = "", y = "") +
-  theme(
-    legend.position = "top",
-    legend.justification = "center",
-    legend.direction = "horizontal",
-    axis.ticks = element_blank()
-  ) +
-  scale_x_continuous(labels = scales::percent_format(accuracy = 1))
-dev.off()
-
-pdf("~/Documents/thesis/data/figures/topic_metrics_impressions_clicks.pdf")
-topic_metrics %>%
-  ggplot(aes(y = reorder(factor(primary_topic), pct_clicks))) +
-  geom_point(aes(x = pct_impressions, color = "impressions")) +
-  geom_point(aes(x = pct_clicks, color = "clicks")) +
-  scale_colour_manual(
-    name = "",
-    values = c("clicks" = "#2196F3", "impressions" = "#90CAF9"),
-    labels = c("Clicks", "Impressions")
-  ) +
-  labs(title = "", x = "", y = "") +
-  theme(
-    legend.position = "top",
-    legend.justification = "center",
-    legend.direction = "horizontal",
-    axis.ticks = element_blank()
-  ) +
-  scale_x_continuous(labels = scales::percent_format(accuracy = 1))
-dev.off()
 
 # PLOT _
 # Plot grouped interests' circulation (count and spend) and reach (clicks and impressions)
@@ -176,21 +155,35 @@ dev.off()
 
 # PLOT _
 # Plot topics over time
-event_date <- c(as.Date("2016-11-08"), as.Date("2016-03-16"), as.Date("2016-09-20"), as.Date("2016-06-06"))
+event_date <-
+  c(
+    as.Date("2016-11-08"),
+    as.Date("2016-03-16"),
+    as.Date("2016-09-20"),
+    as.Date("2016-06-06")
+  )
 event_pos <- c(15.65, 15.65, 15.65, 15.65)
-event_label <- c("Election", "WikiLeaks Dump", "Keith Scott Killed", "Hillary Nominee")
+event_label <-
+  c("Election",
+    "WikiLeaks Dump",
+    "Keith Scott Killed",
+    "Hillary Nominee")
 event_annotes <- data.frame(event_date, event_pos, event_label)
 
 pdf("~/Documents/thesis/data/figures/topics_date.pdf")
 full %>%
   drop_na(primary_topic) %>%
   mutate() %>%
-  ggplot(aes(x = as.Date(CreationDateFormatted, "%Y-%m-%d"), y = as.factor(primary_topic))) +
+  ggplot(aes(
+    x = as.Date(CreationDateFormatted, "%Y-%m-%d"),
+    y = as.factor(primary_topic)
+  )) +
   geom_density_ridges2(aes(alpha = 0.5)) +
   scale_y_discrete(expand = c(0.01, 0)) +
   labs(title = "", x = "", y = "") +
   geom_segment(
-    data = event_annotes, aes(
+    data = event_annotes,
+    aes(
       x = event_date,
       xend = event_date,
       y = 0,
@@ -213,79 +206,6 @@ full %>%
   )
 dev.off()
 
-# Helper function for making forest plot
-formatInterval <- function(mean, lower, upper) {
-  upper <- formatC(upper, format = "f", digits = 3)
-  upper <- ifelse(grepl("-", upper), str_c("", upper), str_c("  ", upper))
-  lower <- formatC(lower, format = "f", digits = 3)
-  lower <- ifelse(grepl("-", lower), str_c(" ", lower), str_c("   ", lower))
-  interval <- str_c("[", lower, " , ", upper, " ]")
-  mean <- formatC(mean, format = "f", digits = 3)
-  return(str_c(mean, "   ", interval))
-}
-
-# Function for making forest plots
-makePrimaryTopicForestPlot <- function(plot, file_name, covar_label_1, covar_label_2) {
-  
-  plotDF <- data.frame(t(sapply(plot$cis, function(x) x[1:max(lengths(plot$cis))])))
-  
-  prepDF <- data.frame(
-    plot$labels,
-    plot$topics,
-    unlist(plot$means),
-    plotDF$X2.5.,
-    plotDF$X97.5.)
-
-  colnames(prepDF) <- c("primary_topic",
-                        "topic_n",
-                        "mean",
-                        "lower",
-                        "upper")
-
-  prepDF <- prepDF %>%
-    group_by(primary_topic) %>%
-    summarise(
-      avg_ci_point_estimate = mean(mean),
-      avg_ci_lower_bound = mean(lower),
-      avg_ci_upper_bound = mean(upper))
-
-  table_text <- cbind(
-    c(NA, seq(1, length(prepDF$primary_topic))),
-    c("Primary Topic", as.vector(prepDF$primary_topic)),
-    c("Confidence Interval (95%)", formatInterval(
-      prepDF$avg_ci_point_estimate,
-      prepDF$avg_ci_lower_bound,
-      prepDF$avg_ci_upper_bound)))
-
-  pdf(str_c("~/Documents/", file_name))
-  forestplot(table_text,
-             graph.pos = 3,
-             is.summary = c(TRUE, rep(FALSE, length(prepDF$primary_topic))),
-             align = c("r", "l", "r"),
-             mean = c(NA, prepDF$avg_ci_point_estimate),
-             lower = c(NA, prepDF$avg_ci_lower_bound),
-             upper = c(NA, prepDF$avg_ci_upper_bound),
-             fn.ci_norm = fpDrawCircleCI,
-             hrzl_lines = list("2" = gpar(lwd = 2, col = "#000000")),
-             boxsize = .15,
-             xlab = (str_c("\n", covar_label_1, " ... ", covar_label_2)),
-             cex = 0,
-             zero = 0,
-             new_page = FALSE,
-             txt_gp = fpTxtGp(
-               xlab = gpar(cex = .75),
-               label = gpar(cex = .75),
-               ticks = gpar(cex = .75)
-             ),
-             col = fpColors(box = "black", lines = "black", zero = "gray50"),
-             cex = 0.9, lineheight = "auto", colgap = unit(4, "mm"),
-             lwd.ci = 1,
-             clip = c(-.1, 1)
-  )
-  dev.off()
-  
-}
-
 # PLOT _
 # Plot interest effects
 prepInterests <- estimateEffect(
@@ -296,17 +216,19 @@ prepInterests <- estimateEffect(
 )
 pdf("~/Documents/thesis/data/figures/effects_interests.pdf")
 
-plotInterests <- plot(prepInterests,
-                      covariate = "Interests", 
-                      topics = c(1:49),
-                      model = stm, 
-                      method = "difference",
-                      cov.value1 = "Right Wing", 
-                      cov.value2 = "Left Wing",
-                      xlab = "Left wing ... Right wing",
-                      main = "",
-                      labeltype = "custom",
-                      custom.labels = topicNames)
+plotInterests <- plot(
+  prepInterests,
+  covariate = "Interests",
+  topics = c(1:49),
+  model = stm,
+  method = "difference",
+  cov.value1 = "Right Wing",
+  cov.value2 = "Left Wing",
+  xlab = "Left wing ... Right wing",
+  main = "",
+  labeltype = "custom",
+  custom.labels = topicNames
+)
 dev.off()
 
 pdf("~/Documents/thesis/data/figures/effects_interests_3_8_20_37.pdf")
@@ -322,7 +244,8 @@ topicNamesDf <- data.frame(
   TopicProportions = colMeans(stm$theta)
 )
 
-interestsAllUnordered <- plot(prepInterests,
+interestsAllUnordered <- plot(
+  prepInterests,
   covariate = "Interests",
   topics = c(1:49),
   model = stm,
@@ -333,11 +256,14 @@ interestsAllUnordered <- plot(prepInterests,
   main = ""
 )
 rank <- order(unlist(interestsAllUnordered$means))
-topicNamesDf <- topicNamesDf[rank, ]
+topicNamesDf <- topicNamesDf[rank,]
 par(mfrow = c(1, 1), mar = c(6, 6, 4, 4))
 
-pdf("~/Documents/thesis/data/figures/effects_interests_all.pdf", height = 10.5)
-plot(prepInterests, "Interests",
+pdf("~/Documents/thesis/data/figures/effects_interests_all.pdf",
+    height = 10.5)
+plot(
+  prepInterests,
+  "Interests",
   method = "difference",
   cov.value1 = "Right Wing",
   cov.value2 = "Left Wing",
@@ -360,7 +286,8 @@ prepAdSpendBin <- estimateEffect(
   uncertainty = "Global"
 )
 pdf("~/Documents/thesis/data/figures/effects_bin_adspend.pdf")
-plot(prepAdSpendBin,
+plot(
+  prepAdSpendBin,
   covariate = "AdSpendBin",
   topics = c(2, 21, 37),
   model = stm,
@@ -376,7 +303,10 @@ plot(prepAdSpendBin,
 dev.off()
 
 pdf("~/Documents/thesis/data/figures/effects_bin_adspend_2_21_37.pdf")
-plot.STM(stm, topics = c(2, 21, 37), type = "labels", width = 50)
+plot.STM(stm,
+         topics = c(2, 21, 37),
+         type = "labels",
+         width = 50)
 dev.off()
 
 # PLOT _
@@ -388,7 +318,8 @@ topicNamesDf <- data.frame(
   TopicProportions = colMeans(stm$theta)
 )
 
-adSpendBinAllUnordered <- plot(prepAdSpendBin,
+adSpendBinAllUnordered <- plot(
+  prepAdSpendBin,
   covariate = "AdSpendBin",
   topics = c(1:49),
   model = stm,
@@ -400,11 +331,14 @@ adSpendBinAllUnordered <- plot(prepAdSpendBin,
   xlim = c(-.1, .1)
 )
 rank <- order(unlist(adSpendBinAllUnordered$means))
-topicNamesDf <- topicNamesDf[rank, ]
+topicNamesDf <- topicNamesDf[rank,]
 par(mfrow = c(1, 1), mar = c(6, 6, 4, 4))
 
-pdf("~/Documents/thesis/data/figures/effects_bin_adspend_all.pdf", height = 10.5)
-plot(prepAdSpendBin, "AdSpendBin",
+pdf("~/Documents/thesis/data/figures/effects_bin_adspend_all.pdf",
+    height = 10.5)
+plot(
+  prepAdSpendBin,
+  "AdSpendBin",
   method = "difference",
   cov.value1 = "high",
   cov.value2 = "low",
@@ -428,7 +362,8 @@ prepAgeBin <- estimateEffect(
 )
 
 pdf("~/Documents/thesis/data/figures/effects_bin_age.pdf")
-plot(prepAgeBin,
+plot(
+  prepAgeBin,
   covariate = "AgeAverageBin",
   topics = c(8, 44, 47),
   model = stm,
@@ -444,7 +379,10 @@ plot(prepAgeBin,
 dev.off()
 
 pdf("~/Documents/thesis/data/figures/effects_bin_age_8_44_47.pdf")
-plot.STM(stm, topics = c(8, 44, 47), type = "labels", width = 50)
+plot.STM(stm,
+         topics = c(8, 44, 47),
+         type = "labels",
+         width = 50)
 dev.off()
 
 # PLOT _
@@ -455,7 +393,8 @@ topicNamesDf <- data.frame(
   TopicProportions = colMeans(stm$theta)
 )
 
-ageAllUnordered <- plot(prepAgeBin,
+ageAllUnordered <- plot(
+  prepAgeBin,
   covariate = "AgeAverageBin",
   topics = c(1:49),
   model = stm,
@@ -467,11 +406,14 @@ ageAllUnordered <- plot(prepAgeBin,
   xlim = c(-.1, .1)
 )
 rank <- order(unlist(ageAllUnordered$means))
-topicNamesDf <- topicNamesDf[rank, ]
+topicNamesDf <- topicNamesDf[rank,]
 par(mfrow = c(1, 1), mar = c(6, 6, 4, 4))
 
-pdf("~/Documents/thesis/data/figures/effects_bin_age_all.pdf", height = 10.5)
-plot(prepAgeBin, "AgeAverageBin",
+pdf("~/Documents/thesis/data/figures/effects_bin_age_all.pdf",
+    height = 10.5)
+plot(
+  prepAgeBin,
+  "AgeAverageBin",
   method = "difference",
   cov.value1 = "HighAge",
   cov.value2 = "LowAge",
@@ -495,7 +437,9 @@ prepAgeQuant <- estimateEffect(
 )
 
 pdf("~/Documents/thesis/data/figures/effects_quant_age.pdf")
-plot(prepAgeQuant, "AgeAverage",
+plot(
+  prepAgeQuant,
+  "AgeAverage",
   method = "continuous",
   topics = c(17, 8),
   model = stm,
@@ -522,11 +466,14 @@ dev.off()
 # (Heatmap)
 interestTopicDf <- full %>%
   select(c("Interests", "primary_topic")) %>%
-  filter(Interests != "mixed" & Interests != "unavailable" & primary_topic != "Mixed")
+  filter(Interests != "mixed" &
+           Interests != "unavailable" & primary_topic != "Mixed")
 
-interestTopicMatrix <- t(as.matrix(table(droplevels(interestTopicDf))))
+interestTopicMatrix <-
+  t(as.matrix(table(droplevels(interestTopicDf))))
 
-d <- ifelse(log(interestTopicMatrix) < 0, 0, log(interestTopicMatrix))
+d <-
+  ifelse(log(interestTopicMatrix) < 0, 0, log(interestTopicMatrix))
 
 dd.row <- as.dendrogram(hclust(dist(d)))
 row.ord <- order.dendrogram(dd.row)
@@ -536,7 +483,8 @@ col.ord <- order.dendrogram(dd.col)
 lattice.options(axis.padding = list(factor = 0.5))
 
 # pdf("~/Documents/thesis/data/figures/interests_topics_heatmap.pdf")
-levelplot(d[row.ord, col.ord],
+levelplot(
+  d[row.ord, col.ord],
   aspect = "fill",
   xlab = "Discussed Topics",
   ylab = "Targeted Interests",
@@ -551,20 +499,20 @@ levelplot(d[row.ord, col.ord],
   yaxt = "n",
   legend = list(
     left = list(
-      fun = dendrogramGrob, args =
+      fun = dendrogramGrob,
+      args =
         list(
-          x = dd.col, ord = col.ord,
+          x = dd.col,
+          ord = col.ord,
           side = "right",
           size = 0
         )
     ),
-    top = list(
-      fun = dendrogramGrob, args =
-        list(
-          x = dd.row,
-          side = "top", size = 0
-        )
-    )
+    top = list(fun = dendrogramGrob, args =
+                 list(
+                   x = dd.row,
+                   side = "top", size = 0
+                 ))
   )
 )
 
@@ -592,15 +540,70 @@ group_sizes <- full %>%
   mutate(rank = max((log2(rank) / 2) + 1, 2))
 
 nums <- c(
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-  "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
-  "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
-  "31", "32", "33", "34", "35", "36", "37", "38", "39", "40",
-  "41", "42", "43", "44", "45", "46", "47", "48", "49", "50",
-  "51", "52", "53", "54", "55", "56", "57", "58", "59", "60"
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+  "13",
+  "14",
+  "15",
+  "16",
+  "17",
+  "18",
+  "19",
+  "20",
+  "21",
+  "22",
+  "23",
+  "24",
+  "25",
+  "26",
+  "27",
+  "28",
+  "29",
+  "30",
+  "31",
+  "32",
+  "33",
+  "34",
+  "35",
+  "36",
+  "37",
+  "38",
+  "39",
+  "40",
+  "41",
+  "42",
+  "43",
+  "44",
+  "45",
+  "46",
+  "47",
+  "48",
+  "49",
+  "50",
+  "51",
+  "52",
+  "53",
+  "54",
+  "55",
+  "56",
+  "57",
+  "58",
+  "59",
+  "60"
 )
 
-qgraph(cormatrix,
+qgraph(
+  cormatrix,
   layout = "spring",
   theme = "Borkulo",
   nodeNames = colnames(cormatrix),
@@ -630,8 +633,10 @@ rownames(cormatrix) <- cormatrix_new_labels
 
 coolmap <- Heatmap(
   cormatrix,
-  clustering_distance_rows = function(x) as.dist(1 - cor(t(x))),
-  clustering_distance_columns = function(x) as.dist(1 - cor(t(x))),
+  clustering_distance_rows = function(x)
+    as.dist(1 - cor(t(x))),
+  clustering_distance_columns = function(x)
+    as.dist(1 - cor(t(x))),
   clustering_method_columns = "average",
   clustering_method_rows = "average",
   row_dend_reorder = TRUE,
@@ -646,7 +651,9 @@ coolmap <- Heatmap(
   )
 )
 
-pdf("~/Documents/coolmap.pdf", height = 14, width = 14)
+pdf("~/Documents/coolmap.pdf",
+    height = 14,
+    width = 14)
 draw(coolmap, heatmap_legend_side = "bottom")
 dev.off()
 
@@ -658,7 +665,8 @@ clusterPrep <- estimateEffect(
   uncertainty = "Global"
 )
 
-clusterPrepPlot <- plot(clusterPrep,
+clusterPrepPlot <- plot(
+  clusterPrep,
   covariate = "AccountGroupCluster",
   topics = c(1:49),
   model = stm,
@@ -672,7 +680,9 @@ clusterPrepPlot <- plot(clusterPrep,
   custom.labels = topicNames
 )
 
-clusterPrepPlotDf <- data.frame(t(sapply(clusterPrepPlot$cis, function(x) x[1:max(lengths(clusterPrepPlot$cis))])))
+clusterPrepPlotDf <-
+  data.frame(t(sapply(clusterPrepPlot$cis, function(x)
+    x[1:max(lengths(clusterPrepPlot$cis))])))
 clusterPrepDf <- data.frame(
   clusterPrepPlot$labels,
   clusterPrepPlot$topics,
@@ -680,7 +690,8 @@ clusterPrepDf <- data.frame(
   clusterPrepPlotDf$X2.5.,
   clusterPrepPlotDf$X97.5.
 )
-colnames(clusterPrepDf) <- c("primary_topic", "topic_n", "mean", "lower", "upper")
+colnames(clusterPrepDf) <-
+  c("primary_topic", "topic_n", "mean", "lower", "upper")
 clusterPrepDf <- clusterPrepDf %>%
   group_by(primary_topic) %>%
   summarise(
@@ -690,17 +701,27 @@ clusterPrepDf <- clusterPrepDf %>%
   )
 
 table_text <- cbind(
-  c(NA, seq(1, length(clusterPrepDf$primary_topic))),
+  c(NA, seq(1, length(
+    clusterPrepDf$primary_topic
+  ))),
   c("Primary Topic", as.vector(clusterPrepDf$primary_topic)),
-  c("Confidence Interval (95%)", formatInterval(
-    clusterPrepDf$avg_ci_point_estimate,
-    clusterPrepDf$avg_ci_lower_bound,
-    clusterPrepDf$avg_ci_upper_bound)))
+  c(
+    "Confidence Interval (95%)",
+    formatInterval(
+      clusterPrepDf$avg_ci_point_estimate,
+      clusterPrepDf$avg_ci_lower_bound,
+      clusterPrepDf$avg_ci_upper_bound
+    )
+  )
+)
 
 pdf("~/Documents/coolforest.pdf")
-forestplot(table_text,
+forestplot(
+  table_text,
   graph.pos = 3,
-  is.summary = c(TRUE, rep(FALSE, length(clusterPrepDf$primary_topic))),
+  is.summary = c(TRUE, rep(
+    FALSE, length(clusterPrepDf$primary_topic)
+  )),
   align = c("r", "l", "r"),
   mean = c(NA, clusterPrepDf$avg_ci_point_estimate),
   lower = c(NA, clusterPrepDf$avg_ci_lower_bound),
@@ -718,7 +739,9 @@ forestplot(table_text,
     ticks = gpar(cex = .75)
   ),
   col = fpColors(box = "black", lines = "black", zero = "gray50"),
-  cex = 0.9, lineheight = "auto", colgap = unit(4, "mm"),
+  cex = 0.9,
+  lineheight = "auto",
+  colgap = unit(4, "mm"),
   lwd.ci = 1,
   clip = c(-.1, 1)
 )
@@ -728,14 +751,16 @@ dev.off()
 # Basic summary graphs
 metric_df <- full %>%
   select(Impressions, Clicks, AdSpend) %>%
-  filter(Impressions < quantile(Impressions, 0.98) & Impressions > 0) %>%
+  filter(Impressions < quantile(Impressions, 0.98) &
+           Impressions > 0) %>%
   filter(Clicks < quantile(Clicks, 0.98) & Clicks > 0) %>%
   filter(AdSpend < quantile(AdSpend, 0.98) & AdSpend > 0)
 
 pdf("~/Documents/thesis/data/figures/impressions.pdf")
 impressions_p <- metric_df %>%
   ggplot() +
-  geom_histogram(aes(Impressions, y = ..count.. / sum(..count..)),
+  geom_histogram(
+    aes(Impressions, y = ..count.. / sum(..count..)),
     binwidth = quantile(full$Impressions, 0.95) * 0.05,
     colour = "white",
     size = 1,
@@ -756,7 +781,11 @@ impressions_p_sub <- full %>%
 ggdraw() +
   draw_plot(impressions_p + theme(legend.justification = "bottom"), 0, 0, 1, 1) +
   draw_plot(impressions_p_sub +
-    theme(legend.justification = "top"), 0.5, 0.5, 0.5, 0.5)
+              theme(legend.justification = "top"),
+            0.5,
+            0.5,
+            0.5,
+            0.5)
 # full %>%
 #   ggplot() +
 #   geom_histogram(aes(Impressions,y = ..count../sum(..count..)),
@@ -772,7 +801,8 @@ dev.off()
 pdf("~/Documents/thesis/data/figures/clicks.pdf")
 clicks_p <- metric_df %>%
   ggplot() +
-  geom_histogram(aes(Clicks, y = ..count.. / sum(..count..)),
+  geom_histogram(
+    aes(Clicks, y = ..count.. / sum(..count..)),
     binwidth = quantile(full$Clicks, 0.95) * 0.05,
     colour = "white",
     size = 1,
@@ -793,7 +823,11 @@ clicks_p_sub <- full %>%
 ggdraw() +
   draw_plot(clicks_p + theme(legend.justification = "bottom"), 0, 0, 1, 1) +
   draw_plot(clicks_p_sub +
-    theme(legend.justification = "top"), 0.5, 0.5, 0.5, 0.5)
+              theme(legend.justification = "top"),
+            0.5,
+            0.5,
+            0.5,
+            0.5)
 # full %>%
 #   ggplot() +
 #   geom_histogram(aes(Clicks,y = ..count../sum(..count..)),
@@ -809,7 +843,8 @@ dev.off()
 pdf("~/Documents/thesis/data/figures/spend.pdf")
 spend_p <- metric_df %>%
   ggplot() +
-  geom_histogram(aes(AdSpend, y = ..count.. / sum(..count..)),
+  geom_histogram(
+    aes(AdSpend, y = ..count.. / sum(..count..)),
     binwidth = quantile(full$AdSpend, 0.95) * 0.05,
     colour = "white",
     size = 1,
@@ -830,7 +865,11 @@ spend_p_sub <- full %>%
 ggdraw() +
   draw_plot(spend_p + theme(legend.justification = "bottom"), 0, 0, 1, 1) +
   draw_plot(spend_p_sub +
-    theme(legend.justification = "top"), 0.5, 0.5, 0.5, 0.5)
+              theme(legend.justification = "top"),
+            0.5,
+            0.5,
+            0.5,
+            0.5)
 # full %>%
 #   ggplot() +
 #   geom_histogram(aes(AdSpend,y = ..count../sum(..count..)),
@@ -850,9 +889,15 @@ accountGroupTopicDf <- full %>%
   select(c("AccountGroup", "primary_topic")) %>%
   filter(AccountGroup != "unavailable" & primary_topic != "Mixed")
 
-accountGroupTopicMatrix <- t(as.matrix(table(droplevels(accountGroupTopicDf))))
+accountGroupTopicMatrix <-
+  t(as.matrix(table(droplevels(
+    accountGroupTopicDf
+  ))))
 
-d2 <- ifelse(log10(accountGroupTopicMatrix) < 0, 0, log10(accountGroupTopicMatrix))
+d2 <-
+  ifelse(log10(accountGroupTopicMatrix) < 0,
+         0,
+         log10(accountGroupTopicMatrix))
 
 dd2.row <- as.dendrogram(hclust(dist(d2)))
 row2.ord <- order.dendrogram(dd2.row)
@@ -861,7 +906,8 @@ col2.ord <- order.dendrogram(dd2.col)
 
 lattice.options(axis.padding = list(factor = 0.5))
 
-levelplot(d2[row2.ord, col2.ord],
+levelplot(
+  d2[row2.ord, col2.ord],
   aspect = "fill",
   xlab = "Discussed Topics",
   ylab = "Account Groups",
@@ -876,19 +922,20 @@ levelplot(d2[row2.ord, col2.ord],
   yaxt = "n",
   legend = list(
     left = list(
-      fun = dendrogramGrob, args =
+      fun = dendrogramGrob,
+      args =
         list(
-          x = dd2.col, ord = col2.ord,
+          x = dd2.col,
+          ord = col2.ord,
           side = "right",
           size = 0
         )
     ),
     top = list(
-      fun = dendrogramGrob, args =
-        list(
-          x = dd2.row,
-          side = "top", size = 0
-        )
+      fun = dendrogramGrob,
+      args =
+        list(x = dd2.row,
+             side = "top", size = 0)
     )
   )
 )
@@ -902,9 +949,13 @@ creationDatePrep <- estimateEffect(
   uncertainty = "Global"
 )
 pdf("~/Documents/thesis/data/figures/date_topic27.pdf")
-plot(creationDatePrep, "CreationDateInteger",
-  method = "continuous", topics = (27),
-  model = stm, printlegend = TRUE,
+plot(
+  creationDatePrep,
+  "CreationDateInteger",
+  method = "continuous",
+  topics = (27),
+  model = stm,
+  printlegend = TRUE,
   xlab = "Time",
   xaxt = "n",
   labeltype = "custom",
@@ -913,22 +964,22 @@ plot(creationDatePrep, "CreationDateInteger",
 
 monthseq <- seq(
   from = as.Date("2014-01-01"),
-  to = as.Date("2019-08-13"), by = "month"
+  to = as.Date("2019-08-13"),
+  by = "month"
 )
 monthnames <- months(monthseq)
-axis(1, at = as.numeric(monthseq) - min(as.numeric(monthseq)), labels = monthnames)
+axis(1,
+     at = as.numeric(monthseq) - min(as.numeric(monthseq)),
+     labels = monthnames)
 dev.off()
 
 # PLOT _
 # Time series trends
 time_df <- full
-time_df$Date <- as.Date(
-  time_df$CreationDateFormatted,
-  "%Y-%m-%d"
-)
+time_df$Date <- as.Date(time_df$CreationDateFormatted,
+                        "%Y-%m-%d")
 time_df$Month <- as.Date(cut(time_df$Date,
-  breaks = "week"
-))
+                             breaks = "week"))
 
 time_df <- time_df %>%
   select(primary_topic, Month) %>%
