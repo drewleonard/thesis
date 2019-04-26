@@ -203,10 +203,12 @@ draw_treatment_effects <-
       levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
     )
     
-    # Filter out Black Republican group due to
-    # too few observations and too large std. errs.
+    # Filter out groups without significant effects for sparsity
     estimate_df <- estimate_df %>%
-      filter(level != "Black Republican")
+      filter(level != "Black Republican" & level != "White Democrat")
+    
+    estimate_df <- estimate_df %>% 
+      mutate(color = ifelse(L * U > 0, 'red', 'black'))
     
     # Plot effects
     estimate_df %>%
@@ -214,15 +216,82 @@ draw_treatment_effects <-
         x = effect,
         y = level,
         xmin = L,
-        xmax = U
+        xmax = U,
+        color = color
       )) +
       geom_point() +
       geom_errorbarh(height = .1) +
       facet_grid(. ~ treatment) +
       geom_vline(xintercept = 0,
-                 linetype = "solid",
-                 color = "black") +
+                 linetype = "dashed",
+                 color = "grey") +
       coord_fixed(ratio = 0.50 * abs(xlim_u)) +
+      scale_color_identity() +
+      xlim(xlim_l, xlim_u) +
+      labs(y = groups_title, x = effect_title) +
+      theme_bw() +
+      theme(
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_rect(color = "grey"),
+        axis.line = element_line(color = "grey", size = 0.5),
+        panel.border = element_rect(
+          color = "grey",
+          fill = NA,
+          size = 0.5
+        )
+      )
+    
+  }
+
+draw_treatment_effects_full <-
+  function(sibp.amce,
+           treatments,
+           groups_title,
+           effect_title,
+           xlim_l,
+           xlim_u,
+           ratio) {
+    # Supply groups, always same in my case
+    groups <- c("Black Democrat",
+                "White Democrat",
+                "Black Republican",
+                "White Republican")
+    
+    # Subset and label df's coefficients
+    subset_start <- length(groups) + 1
+    subset_end <- nrow(sibp.amce)
+    estimate_df <- sibp.amce[c(subset_start:subset_end), ]
+    estimate_df$level <-
+      rep(groups, each = nrow(estimate_df) / length(groups))
+    estimate_df$treatment <-
+      rep(treatments, times = nrow(estimate_df) / length(treatments))
+    estimate_df$treatment = factor(
+      estimate_df$treatment,
+      levels = c('Black Pride', 'Dangerous Society', 'Identity Support')
+    )
+    
+    estimate_df <- estimate_df %>% 
+      mutate(color = ifelse(L * U > 0, 'red', 'black'))
+    
+    # Plot effects
+    estimate_df %>%
+      ggplot(., aes(
+        x = effect,
+        y = level,
+        xmin = L,
+        xmax = U,
+        color = color
+      )) +
+      geom_vline(xintercept = 0,
+                 linetype = "dashed",
+                 color = "grey") +
+      geom_point() +
+      geom_errorbarh(height = .1) +
+      facet_grid(. ~ treatment) +
+      coord_fixed(ratio = 0.50 * abs(xlim_u)) +
+      scale_color_identity() +
       xlim(xlim_l, xlim_u) +
       labs(y = groups_title, x = effect_title) +
       theme_bw() +

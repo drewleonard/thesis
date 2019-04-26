@@ -2,7 +2,7 @@ rm(list = ls())
 setwd('~/Documents/thesis/data/')
 
 load('./rdata/survey_analysis_efficacy.RData')
-source("../src/R/survey/survey_analysis_helper.R")
+source("/Users/drewnleonard/Documents/thesis/src/R/estimation/survey_analysis_helper.R")
 
 library(rlang)
 library(data.table)
@@ -357,7 +357,7 @@ sibp_top_words(sibp.fit, colnames(X), 30, verbose = TRUE)
 sibp.amce <- sibp_amce_temp(sibp.fit, X, Y, G = G)
 sibp.amce.model <- get_amce_model(sibp.fit, X, Y, G = G)
 
-#pdf('./figures/survey_analysis_efficacy_effects.pdf')
+pdf('./figures/survey/survey_analysis_efficacy_effects.pdf')
 draw_treatment_effects(
   sibp.amce = sibp.amce,
   treatments = c("Dangerous Society",  "Black Pride", "Identity Support"),
@@ -366,7 +366,18 @@ draw_treatment_effects(
   xlim_l = -1.5,
   xlim_u = 1.5
 )
-#dev.off()
+dev.off()
+
+pdf('./figures/survey/survey_analysis_efficacy_effects_full.pdf')
+draw_treatment_effects_full(
+  sibp.amce = sibp.amce,
+  treatments = c("Dangerous Society",  "Black Pride", "Identity Support"),
+  groups_title = "",
+  effect_title = "Political Efficacy",
+  xlim_l = -3,
+  xlim_u = 3
+)
+dev.off()
 
 format_treatment_effects(
   sibp.amce = sibp.amce,
