@@ -219,12 +219,12 @@ draw_treatment_effects <-
         xmax = U,
         color = color
       )) +
-      geom_point() +
-      geom_errorbarh(height = .1) +
-      facet_grid(. ~ treatment) +
       geom_vline(xintercept = 0,
                  linetype = "dashed",
                  color = "grey") +
+      geom_point() +
+      geom_errorbarh(height = .1) +
+      facet_grid(. ~ treatment) +
       coord_fixed(ratio = 0.50 * abs(xlim_u)) +
       scale_color_identity() +
       xlim(xlim_l, xlim_u) +
